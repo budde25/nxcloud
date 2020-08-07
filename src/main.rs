@@ -1,7 +1,10 @@
+use reqwest::Error;
 use std::path::PathBuf;
+use std::process::exit;
 use structopt::StructOpt;
 use url::Url;
 
+mod file;
 mod http;
 
 #[derive(Debug, StructOpt)]
@@ -72,6 +75,9 @@ fn login(server: Url, username: &str, password: &str) {
     let res = http::get_user(server, &username, &password);
     match res {
         Ok(i) => println!("{:?}", i),
-        Err(i) => println!("{:?}", i),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
     }
 }
