@@ -6,8 +6,7 @@ use url::Url;
 
 fn get_client() -> Result<Client, Error> {
     let timeout = Duration::new(10, 0);
-    let client = ClientBuilder::new().timeout(timeout).build()?;
-    return Ok(client);
+    return Ok(ClientBuilder::new().timeout(timeout).build()?);
 }
 
 #[tokio::main]
