@@ -1,20 +1,34 @@
-use std::collections::HashMap;
+use reqwest::Client;
+use reqwest::ClientBuilder;
+use reqwest::Error;
+use std::time::Duration;
 use url::Url;
 
-#[tokio::main]
-pub async fn getAppPassword(server: Url, username: String, password: String) {
-    let resp = reqwest::get(server + "/ocs/v2.php/core/getapppassword")
-        .send()
-        .await?;
-    println!("{:#?}", resp);
+fn get_client() -> Result<Client, Error> {
+    let timeout = Duration::new(10, 0);
+    let client = ClientBuilder::new().timeout(timeout).build()?;
+    return Ok(client);
 }
 
 #[tokio::main]
-pub async fn login() -> Result<(), Box<dyn std::error::Error>> {
-    let resp = reqwest::get("https://httpbin.org/ip")
-        .await?
-        .json::<HashMap<String, String>>()
+pub async fn get_user(server: Url, user: &str, pass: &str) -> Result<String, Error> {
+    let request = format!(
+        "{url}{ext}{user}",
+        url = server.as_str(),
+        ext = "ocs/v1.php/cloud/users/",
+        user = user
+    );
+    println!("request url: {}", request);
+
+    let client = get_client().unwrap();
+
+    let response = client
+        .get(&request)
+        .basic_auth(user, Some(pass))
+        .header("OCS-APIRequest", "true")
+        .send()
         .await?;
-    println!("{:#?}", resp);
-    Ok(())
+
+    let text = response.text().await?;
+    return Ok(text);
 }

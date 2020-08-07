@@ -56,7 +56,7 @@ fn main() {
             server,
             username,
             password,
-        } => http::getAppPassword(server, username, password),
+        } => login(server, &username, &password),
         Cli::Push {
             source,
             destination,
@@ -65,5 +65,13 @@ fn main() {
             source,
             destination,
         } => println!("Pull"),
+    };
+}
+
+fn login(server: Url, username: &str, password: &str) {
+    let res = http::get_user(server, &username, &password);
+    match res {
+        Ok(i) => println!("{:?}", i),
+        Err(i) => println!("{:?}", i),
     }
 }
