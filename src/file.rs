@@ -1,6 +1,7 @@
-use std::env;
 use std::fs;
 use std::fs::File;
+use std::io;
+use std::io::Write;
 use std::path::Path;
 
 const CONFIG: &str = "config.txt";
@@ -22,14 +23,14 @@ pub fn read_user() -> Result<(String, String), String> {
     return Ok((user, pass));
 }
 
-pub fn write_user(user: &str, pass: &str) -> Result<(), String> {
+pub fn write_user(user: &str, pass: &str) -> Result<(), io::Error> {
     let path = Path::new(CONFIG);
-    if path.exists() {}
+    if !path.exists() {
+        fs::remove_file(path)?;
+    }
 
-    let mut file = match File::create(&path) {
-        Err(_) => panic!("couldn't create File"),
-        Ok(file) => file,
-    };
-
+    let contents = format!("{} {}", user, pass);
+    let mut file = File::create(&path)?;
+    file.write(contents.as_bytes())?;
     return Ok(());
 }
