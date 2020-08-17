@@ -1,7 +1,7 @@
 [package]
 name = "nextcloudcli"
 version = "0.1.0"
-authors = ["budde25 <budde25@gmail.com>"]
+authors = ["budde25 <budde25@protonmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
