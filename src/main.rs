@@ -16,7 +16,7 @@ enum Cli {
     #[structopt(name = "status")]
     Status {},
     #[structopt(name = "login")]
-    /// Login to your NextCloud server, please provide a app password for sucurity.
+    /// Login to your NextCloud server, please provide a app password for security.
     Login {
         /// The server url, ex: https://nextcloud.com.
         #[structopt(short = "s", long)]

@@ -1,5 +1,3 @@
-extern crate xmltree;
-
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
