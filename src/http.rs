@@ -6,17 +6,13 @@ use std::time::Duration;
 use url::Url;
 use xmltree::Element;
 
-#[tokio::main]
-pub async fn handle_response(result: Result<Response, Error>) -> Result<Element, String> {
+pub fn handle_response(result: Result<String, Error>) -> Result<Element, String> {
     match result {
-        Ok(resp) => match resp.text().await {
-            Ok(text) => match Element::parse(text.as_bytes()) {
-                Ok(xml) => return Ok(xml),
-                Err(_) => return Err(String::from("Error: Failed to parse response")),
-            },
-            Err(_) => return Err(String::from("Error: Failed to unwrap response data")),
+        Ok(text) => match Element::parse(text.as_bytes()) {
+            Ok(xml) => return Ok(xml),
+            Err(e) => return Err(format!("Error: Failed to parse, {}, {}", e, text)),
         },
-        Err(err) => return Err(err.to_string()),
+        Err(_) => return Err(String::from("Error: Failed to unwrap response data")),
     }
 }
 
@@ -26,7 +22,7 @@ fn get_client() -> Result<Client, Error> {
 }
 
 #[tokio::main]
-pub async fn get_user(server: Url, user: &str, pass: &str) -> Result<Response, Error> {
+pub async fn get_user(server: Url, user: &str, pass: &str) -> Result<String, Error> {
     let request: String = format!(
         "{url}{ext}{user}",
         url = server.as_str(),
@@ -44,5 +40,45 @@ pub async fn get_user(server: Url, user: &str, pass: &str) -> Result<Response, E
         .await?
         .error_for_status();
 
-    return response;
+    match response {
+        Ok(resp) => return Ok(resp.text().await?),
+        Err(e) => return Err(e),
+    }
+}
+
+// TESTS
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn get_user_valid() {
+        let url = Url::parse("https://cloud.ebudd.io").unwrap();
+        get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
+            .expect("Args are valid should return a result");
+    }
+
+    #[test]
+    fn get_user_invalid_url() {
+        let url = Url::parse("https://cloud.ebudd.i").unwrap();
+        get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
+            .expect_err("Url is invalid should fail");
+    }
+
+    #[test]
+    #[ignore]
+    fn get_user_invalid_creds() {
+        let url = Url::parse("https://cloud.ebudd.io").unwrap();
+        get_user(url, "testdsa", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
+            .expect_err("Username is invalid should fail");
+    }
+
+    #[test]
+    #[ignore]
+    fn get_user_handle_response() {
+        let url = Url::parse("https://cloud.ebudd.io").unwrap();
+        let resp = get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS");
+        handle_response(resp).expect("Handle response should work");
+    }
 }
