@@ -4,7 +4,7 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 
-const CONFIG: &str = "config.txt";
+pub const DEFAULT_PATH: &str = "config.txt";
 
 pub fn read_user(path: &Path) -> Result<(String, String), String> {
     let contents = fs::read_to_string(path);

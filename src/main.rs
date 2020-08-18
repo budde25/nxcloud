@@ -1,3 +1,5 @@
+use file::DEFAULT_PATH;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 use structopt::StructOpt;
@@ -53,7 +55,7 @@ enum Cli {
 fn main() {
     let cli = Cli::from_args();
     match cli {
-        Cli::Status {} => println!("Status"),
+        Cli::Status {} => status(),
         Cli::Login {
             server,
             username,
@@ -62,21 +64,43 @@ fn main() {
         Cli::Push {
             source,
             destination,
-        } => println!("Push"),
+        } => println!("Push {:?}, {:?}", source, destination),
         Cli::Pull {
             source,
             destination,
-        } => println!("Pull"),
+        } => println!("Pull {:?}, {:?}", source, destination),
     };
+    exit(0);
 }
 
 fn login(server: Url, username: &str, password: &str) {
-    let res = http::get_user(server, &username, &password);
-    let xml = http::handle_response(res).unwrap();
-    println!("{:?}", xml);
+    let resp = http::get_user(server, &username, &password);
+    match resp {
+        Ok(_) => {
+            let path = Path::new(DEFAULT_PATH);
+            match file::write_user(username, password, path) {
+                Ok(_) => println!("Login Successful"),
+                Err(_) => println!("Error: Faild to save credentials"),
+            }
+            return;
+        }
+        Err(e) => exit_failure(&e.to_string()),
+    }
 }
 
-fn exit_failure(error: String) {
+fn status() {
+    let path = Path::new(DEFAULT_PATH);
+    let user = file::read_user(path);
+    match user {
+        Ok(res) => {
+            let username = res.0;
+            println!("Logged in as {}", username);
+        }
+        Err(_) => println!("Not logged in"),
+    }
+}
+
+fn exit_failure(error: &str) {
     eprintln!("Error: {}", error);
     exit(1);
 }
