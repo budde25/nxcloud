@@ -24,7 +24,7 @@ pub fn read_user(path: &Path) -> Result<Creds, String> {
     };
     let decoded = match &decode(res) {
         Ok(i) => String::from_utf8_lossy(i).to_string(),
-        Err(_) => return Err(String::from("Failed to read file")),
+        Err(_) => return Err(String::from("Failed to decode file")),
     };
     let v: Vec<&str> = decoded.split(' ').collect();
 
@@ -52,7 +52,7 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
 
 pub fn remove_file(path: &Path) -> bool {
     if path.exists() && path.is_file() {
-        fs::remove_file(path).expect("Error: Failed to file");
+        fs::remove_file(path).expect("Error: Failed remove to file");
         return true;
     } else {
         return false;
