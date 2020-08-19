@@ -75,29 +75,34 @@ fn main() {
 }
 
 fn login(server: String, username: String, password: String) {
-    let fqdn: String = if !server.contains("https://") {
+    let fqdn: String = if !server.contains("https://") || !server.contains("http://") {
         format!("https://{}", &server)
     } else {
         server
     };
 
-    let url = Url::parse(&fqdn).unwrap();
-    let creds = Creds {
-        username,
-        password,
-        server: url,
-    };
-    let resp = http::get_user(&creds);
-    match resp {
-        Ok(_) => {
-            let path = Path::new(DEFAULT_PATH);
-            match file::write_user(creds, path) {
-                Ok(_) => println!("Login Successful"),
-                Err(_) => println!("Error: Faild to save credentials"),
+    if let Ok(res) = Url::parse(&fqdn) {
+        let url = res;
+
+        let creds = Creds {
+            username,
+            password,
+            server: url,
+        };
+        let resp = http::get_user(&creds);
+        match resp {
+            Ok(_) => {
+                let path = Path::new(DEFAULT_PATH);
+                match file::write_user(creds, path) {
+                    Ok(_) => println!("Login Successful"),
+                    Err(_) => println!("Error: Faild to save credentials"),
+                }
+                return;
             }
-            return;
+            Err(e) => exit_failure(&e.to_string()),
         }
-        Err(e) => exit_failure(&e.to_string()),
+    } else {
+        exit_failure("Invalid url");
     }
 }
 
