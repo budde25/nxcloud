@@ -43,7 +43,7 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     return Ok(());
 }
 
-fn remove_file(path: &Path) -> bool {
+pub fn remove_file(path: &Path) -> bool {
     if path.exists() && path.is_file() {
         fs::remove_file(path).expect("Error: Failed to file");
         return true;

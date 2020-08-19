@@ -21,7 +21,7 @@ enum Cli {
     #[structopt(name = "login")]
     /// Login to your NextCloud server, please provide a app password for security.
     Login {
-        /// The server url, ex: https://nextcloud.com.
+        /// The server url, ex: https://cloud.example.com.
         #[structopt(short = "s", long)]
         server: String,
         /// Your NextCloud username.
@@ -31,6 +31,8 @@ enum Cli {
         #[structopt(short = "p", long)]
         password: String,
     },
+    /// Logout of your NextCloud server.
+    Logout,
     /// Push a file from your local machine to the server.
     #[structopt(name = "push")]
     Push {
@@ -62,6 +64,7 @@ fn main() {
             username,
             password,
         } => login(server, username, password),
+        Cli::Logout {} => logout(),
         Cli::Push {
             source,
             destination,
@@ -104,6 +107,12 @@ fn login(server: String, username: String, password: String) {
     } else {
         exit_failure("Invalid url");
     }
+}
+
+fn logout() {
+    let path = Path::new(file::DEFAULT_PATH);
+    file::remove_file(path);
+    println!("Logout Successful");
 }
 
 fn status() {
