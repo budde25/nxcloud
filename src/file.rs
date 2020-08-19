@@ -1,3 +1,4 @@
+use base64::{decode, encode};
 use bytes::Bytes;
 use std::fs;
 use std::fs::File;
@@ -21,7 +22,11 @@ pub fn read_user(path: &Path) -> Result<Creds, String> {
         Ok(i) => i,
         Err(_) => return Err(String::from("Failed to read file")),
     };
-    let v: Vec<&str> = res.split(' ').collect();
+    let decoded = match &decode(res) {
+        Ok(i) => String::from_utf8_lossy(i).to_string(),
+        Err(_) => return Err(String::from("Failed to read file")),
+    };
+    let v: Vec<&str> = decoded.split(' ').collect();
 
     if v.len() != 3 {
         return Err(String::from("Unexpect format"));
@@ -39,8 +44,9 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     remove_file(path);
 
     let contents = format!("{} {} {}", creds.username, creds.password, creds.server);
+    let encoded = encode(contents);
     let mut file = File::create(&path)?;
-    file.write(contents.as_bytes())?;
+    file.write(encoded.as_bytes())?;
     return Ok(());
 }
 
