@@ -1,3 +1,4 @@
+use file::Creds;
 use file::DEFAULT_PATH;
 use std::path::Path;
 use std::path::PathBuf;
@@ -22,7 +23,7 @@ enum Cli {
     Login {
         /// The server url, ex: https://nextcloud.com.
         #[structopt(short = "s", long)]
-        server: Url,
+        server: String,
         /// Your NextCloud username.
         #[structopt(short = "u", long)]
         username: String,
@@ -60,7 +61,7 @@ fn main() {
             server,
             username,
             password,
-        } => login(server, &username, &password),
+        } => login(server, username, password),
         Cli::Push {
             source,
             destination,
@@ -73,12 +74,24 @@ fn main() {
     exit(0);
 }
 
-fn login(server: Url, username: &str, password: &str) {
-    let resp = http::get_user(server, &username, &password);
+fn login(server: String, username: String, password: String) {
+    let fqdn: String = if !server.contains("https://") {
+        format!("https://{}", &server)
+    } else {
+        server
+    };
+
+    let url = Url::parse(&fqdn).unwrap();
+    let creds = Creds {
+        username,
+        password,
+        server: url,
+    };
+    let resp = http::get_user(&creds);
     match resp {
         Ok(_) => {
             let path = Path::new(DEFAULT_PATH);
-            match file::write_user(username, password, path) {
+            match file::write_user(creds, path) {
                 Ok(_) => println!("Login Successful"),
                 Err(_) => println!("Error: Faild to save credentials"),
             }
@@ -93,8 +106,9 @@ fn status() {
     let user = file::read_user(path);
     match user {
         Ok(res) => {
-            let username = res.0;
-            println!("Logged in as {}", username);
+            let username: String = res.username;
+            let server: Url = res.server;
+            println!("Logged in as {} for server {}", username, server);
         }
         Err(_) => println!("Not logged in"),
     }

@@ -1,3 +1,4 @@
+use super::file::Creds;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
@@ -22,19 +23,19 @@ fn get_client() -> Result<Client, Error> {
 }
 
 #[tokio::main]
-pub async fn get_user(server: Url, user: &str, pass: &str) -> Result<String, Error> {
+pub async fn get_user(creds: &Creds) -> Result<String, Error> {
     let request: String = format!(
         "{url}{ext}{user}",
-        url = server.as_str(),
+        url = creds.server.as_str(),
         ext = "ocs/v1.php/cloud/users/",
-        user = user
+        user = creds.username
     );
 
     let client: Client = get_client()?;
 
     let response: Result<Response, Error> = client
         .get(&request)
-        .basic_auth(user, Some(pass))
+        .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
         .send()
         .await?
@@ -55,30 +56,46 @@ mod tests {
     #[ignore]
     fn get_user_valid() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
-            .expect("Args are valid should return a result");
+        get_user(&Creds {
+            server: url,
+            username: String::from("test"),
+            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
+        })
+        .expect("Args are valid should return a result");
     }
 
     #[test]
     fn get_user_invalid_url() {
         let url = Url::parse("https://cloud.ebudd.i").unwrap();
-        get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
-            .expect_err("Url is invalid should fail");
+        get_user(&Creds {
+            server: url,
+            username: String::from("test"),
+            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
+        })
+        .expect_err("Url is invalid should fail");
     }
 
     #[test]
     #[ignore]
     fn get_user_invalid_creds() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        get_user(url, "testdsa", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS")
-            .expect_err("Username is invalid should fail");
+        get_user(&Creds {
+            server: url,
+            username: String::from("test_wrong"),
+            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
+        })
+        .expect_err("Username is invalid should fail");
     }
 
     #[test]
     #[ignore]
     fn get_user_handle_response() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let resp = get_user(url, "test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS");
+        let resp = get_user(&&Creds {
+            server: url,
+            username: String::from("test"),
+            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
+        });
         handle_response(resp).expect("Handle response should work");
     }
 }

@@ -3,10 +3,18 @@ use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use url::Url;
 
 pub const DEFAULT_PATH: &str = "config.txt";
 
-pub fn read_user(path: &Path) -> Result<(String, String), String> {
+#[derive(Debug)]
+pub struct Creds {
+    pub username: String,
+    pub password: String,
+    pub server: Url,
+}
+
+pub fn read_user(path: &Path) -> Result<Creds, String> {
     let contents = fs::read_to_string(path);
     let res = match contents {
         Ok(i) => i,
@@ -14,19 +22,22 @@ pub fn read_user(path: &Path) -> Result<(String, String), String> {
     };
     let v: Vec<&str> = res.split(' ').collect();
 
-    if v.len() != 2 {
+    if v.len() != 3 {
         return Err(String::from("Unexpect format"));
     }
-    let user = String::from(v[0]);
-    let pass = String::from(v[1]);
+    let creds: Creds = Creds {
+        username: String::from(v[0]),
+        password: String::from(v[1]),
+        server: Url::parse(v[2]).unwrap(),
+    };
 
-    return Ok((user, pass));
+    return Ok(creds);
 }
 
-pub fn write_user(user: &str, pass: &str, path: &Path) -> Result<(), io::Error> {
+pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     remove_file(path);
 
-    let contents = format!("{} {}", user, pass);
+    let contents = format!("{} {} {}", creds.username, creds.password, creds.server);
     let mut file = File::create(&path)?;
     file.write(contents.as_bytes())?;
     return Ok(());
@@ -56,18 +67,45 @@ mod tests {
     #[test]
     fn write_user_no_file() {
         let path = Path::new("test_write_user_no_file.txt");
-        write_user("user", "pass", path).expect("File should be created");
+        write_user(
+            Creds {
+                username: String::from("user"),
+                password: String::from("pass"),
+                server: Url::parse("https://cloud.example.com").unwrap(),
+            },
+            path,
+        )
+        .expect("File should be created");
         assert!(remove_file(path));
     }
 
     #[test]
     fn write_user_overwrite_file() {
         let path = Path::new("test_write_user_overwrite_file.txt");
-        write_user("user", "pass", path).expect("File should be created");
-        write_user("user2", "pass2", path).expect("File should be created");
+        write_user(
+            Creds {
+                username: String::from("user"),
+                password: String::from("pass"),
+                server: Url::parse("https://cloud.example.com").unwrap(),
+            },
+            path,
+        )
+        .expect("File should be created");
+        write_user(
+            Creds {
+                username: String::from("user2"),
+                password: String::from("pass2"),
+                server: Url::parse("https://cloud.example2.com").unwrap(),
+            },
+            path,
+        )
+        .expect("File should be created");
+        let resp = read_user(path).unwrap();
+        assert_eq!(resp.username, String::from("user2"));
+        assert_eq!(resp.password, String::from("pass2"));
         assert_eq!(
-            read_user(path).unwrap(),
-            (String::from("user2"), String::from("pass2"))
+            resp.server,
+            Url::parse("https://cloud.example2.com").unwrap()
         );
         assert!(remove_file(path));
     }
@@ -76,14 +114,28 @@ mod tests {
     fn write_and_read() {
         let path = Path::new("test_read_and_write.txt");
         remove_file(path);
-        write_user("user", "pass", path).expect("File should be created");
+        write_user(
+            Creds {
+                username: String::from("user"),
+                password: String::from("pass"),
+                server: Url::parse("https://cloud.example.com").unwrap(),
+            },
+            path,
+        )
+        .expect("File should be created");
+        let resp = read_user(path).unwrap();
+        assert_eq!(resp.username, String::from("user"));
+        assert_eq!(resp.password, String::from("pass"));
         assert_eq!(
-            read_user(path).unwrap(),
-            (String::from("user"), String::from("pass"))
+            resp.server,
+            Url::parse("https://cloud.example.com").unwrap()
         );
+
+        assert_ne!(resp.username, String::from("user2"));
+        assert_ne!(resp.password, String::from("pass2"));
         assert_ne!(
-            read_user(path).unwrap(),
-            (String::from("pass"), String::from("user"))
+            resp.server,
+            Url::parse("https://cloud.example2.com").unwrap()
         );
         assert!(remove_file(path));
     }
