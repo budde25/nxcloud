@@ -1,8 +1,10 @@
 use super::file::Creds;
+use bytes::Bytes;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
 use reqwest::Response;
+use std::path::Path;
 use std::time::Duration;
 use xmltree::Element;
 
@@ -42,6 +44,38 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
 
     match response {
         Ok(resp) => return Ok(resp.text().await?),
+        Err(e) => return Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
+    let path_str = if path.strip_prefix("/").is_ok() {
+        path.strip_prefix("/").unwrap()
+    } else {
+        &path
+    };
+
+    let request: String = format!(
+        "{url}{ext}{user}/{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path_str.to_string_lossy()
+    );
+
+    let client: Client = get_client()?;
+
+    let response: Result<Response, Error> = client
+        .get(&request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .header("OCS-APIRequest", "true")
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(resp) => return Ok(resp.bytes().await?),
         Err(e) => return Err(e),
     }
 }

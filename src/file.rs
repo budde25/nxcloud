@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use std::fs;
 use std::fs::File;
 use std::io;
@@ -50,6 +51,14 @@ pub fn remove_file(path: &Path) -> bool {
     } else {
         return false;
     }
+}
+
+pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
+    if !path.exists() && !path.is_dir() {
+        let mut file = File::create(&path)?;
+        file.write(data)?;
+    }
+    return Ok(());
 }
 
 // TESTS

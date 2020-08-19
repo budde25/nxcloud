@@ -1,5 +1,7 @@
+use bytes::Bytes;
 use file::Creds;
 use file::DEFAULT_PATH;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
@@ -68,11 +70,11 @@ fn main() {
         Cli::Push {
             source,
             destination,
-        } => println!("Push {:?}, {:?}", source, destination),
+        } => push(source, destination),
         Cli::Pull {
             source,
             destination,
-        } => println!("Pull {:?}, {:?}", source, destination),
+        } => pull(source, destination),
     };
     exit(0);
 }
@@ -126,6 +128,32 @@ fn status() {
         }
         Err(_) => println!("Not logged in"),
     }
+}
+
+fn pull(source: PathBuf, destination: PathBuf) {
+    let path = Path::new(file::DEFAULT_PATH);
+    if let Ok(i) = file::read_user(path) {
+        let data: Bytes = http::get_file(&i, &source).unwrap();
+        let file_stem = source.file_stem().unwrap_or(OsStr::new(""));
+        let file_ext = source.extension().unwrap_or(OsStr::new(""));
+
+        let file = format!(
+            "{}.{}",
+            file_stem.to_string_lossy(),
+            file_ext.to_string_lossy()
+        );
+        let new_file_path = Path::new("").join(&destination).join(Path::new(&file));
+
+        file::create_file(&new_file_path, &data).unwrap();
+        println!(
+            "Pull {:?}, {:?}, data: {:?}",
+            source, destination, new_file_path
+        );
+    }
+}
+
+fn push(source: PathBuf, destination: PathBuf) {
+    println!("Push {:?}, {:?}", source, destination)
 }
 
 fn exit_failure(error: &str) {
