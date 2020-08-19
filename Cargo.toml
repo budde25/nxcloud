@@ -14,3 +14,4 @@ reqwest = { version = "0.10.7", features = ["json"] }
 tokio = { version = "0.2.22", features = ["full"] }
 xmltree = "0.10.1"
 bytes = "0.5.6"
+base64 = "0.12.3"
