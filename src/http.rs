@@ -4,7 +4,6 @@ use reqwest::ClientBuilder;
 use reqwest::Error;
 use reqwest::Response;
 use std::time::Duration;
-use url::Url;
 use xmltree::Element;
 
 pub fn handle_response(result: Result<String, Error>) -> Result<Element, String> {
@@ -51,6 +50,7 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use url::Url;
 
     #[test]
     #[ignore]
