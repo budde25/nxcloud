@@ -39,6 +39,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn store_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
         set_creds(
@@ -54,6 +55,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn set_and_read_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
         set_creds(
