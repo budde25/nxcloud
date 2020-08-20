@@ -3,6 +3,12 @@ rust:
   - stable
   - beta
   - nightly
+addons:
+  apt:
+    packages:
+      - libdbus-1-dev
+      - gnome-keyring
+
 matrix:
   allow_failures:
     - rust: nightly
