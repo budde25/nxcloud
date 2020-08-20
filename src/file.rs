@@ -1,3 +1,4 @@
+use super::Creds;
 use base64::{decode, encode};
 use bytes::Bytes;
 use std::fs;
@@ -8,13 +9,6 @@ use std::path::Path;
 use url::Url;
 
 pub const DEFAULT_PATH: &str = "config.txt";
-
-#[derive(Debug)]
-pub struct Creds {
-    pub username: String,
-    pub password: String,
-    pub server: Url,
-}
 
 pub fn read_user(path: &Path) -> Result<Creds, String> {
     let contents = fs::read_to_string(path);

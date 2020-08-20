@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use file::Creds;
 use file::DEFAULT_PATH;
 use std::ffi::OsStr;
 use std::path::Path;
@@ -10,6 +9,14 @@ use url::Url;
 
 mod file;
 mod http;
+mod keyring;
+
+#[derive(Debug)]
+pub struct Creds {
+    pub username: String,
+    pub password: String,
+    pub server: Url,
+}
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -97,8 +104,7 @@ fn login(server: String, username: String, password: String) {
         let resp = http::get_user(&creds);
         match resp {
             Ok(_) => {
-                let path = Path::new(DEFAULT_PATH);
-                match file::write_user(creds, path) {
+                match keyring::set_creds("username", &creds) {
                     Ok(_) => println!("Login Successful"),
                     Err(_) => println!("Error: Faild to save credentials"),
                 }
@@ -112,14 +118,14 @@ fn login(server: String, username: String, password: String) {
 }
 
 fn logout() {
-    let path = Path::new(file::DEFAULT_PATH);
-    file::remove_file(path);
-    println!("Logout Successful");
+    match keyring::delete_creds("username") {
+        Ok(_) => println!("Logout Successful"),
+        Err(_) => println!("Error: Faild to logout"),
+    }
 }
 
 fn status() {
-    let path = Path::new(DEFAULT_PATH);
-    let user = file::read_user(path);
+    let user = keyring::get_creds("username");
     match user {
         Ok(res) => {
             let username: String = res.username;
@@ -131,8 +137,7 @@ fn status() {
 }
 
 fn pull(source: PathBuf, destination: PathBuf) {
-    let path = Path::new(file::DEFAULT_PATH);
-    if let Ok(i) = file::read_user(path) {
+    if let Ok(i) = keyring::get_creds("username") {
         let data: Bytes = http::get_file(&i, &source).unwrap();
         let file_stem = source.file_stem().unwrap_or(OsStr::new(""));
         let file_ext = source.extension().unwrap_or(OsStr::new(""));

@@ -1,4 +1,4 @@
-use super::file::Creds;
+use super::Creds;
 use bytes::Bytes;
 use reqwest::Client;
 use reqwest::ClientBuilder;
