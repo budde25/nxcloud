@@ -139,26 +139,33 @@ fn status() {
 fn pull(source: PathBuf, destination: PathBuf) {
     if let Ok(i) = keyring::get_creds("username") {
         let data: Bytes = http::get_file(&i, &source).unwrap();
-        let file_stem = source.file_stem().unwrap_or(OsStr::new(""));
-        let file_ext = source.extension().unwrap_or(OsStr::new(""));
+        let file_name = source.file_name().unwrap_or(OsStr::new(""));
 
-        let file = format!(
-            "{}.{}",
-            file_stem.to_string_lossy(),
-            file_ext.to_string_lossy()
-        );
-        let new_file_path = Path::new("").join(&destination).join(Path::new(&file));
+        let new_file_path = if destination.file_name().is_none() {
+            Path::new("").join(&destination).join(file_name)
+        } else {
+            destination
+        };
 
         file::create_file(&new_file_path, &data).unwrap();
-        println!(
-            "Pull {:?}, {:?}, data: {:?}",
-            source, destination, new_file_path
-        );
+        println!("Pulled {:?}, {:?}", source, new_file_path);
     }
 }
 
 fn push(source: PathBuf, destination: PathBuf) {
-    println!("Push {:?}, {:?}", source, destination)
+    if let Ok(i) = keyring::get_creds("username") {
+        let data: Bytes = file::read_file(&source).unwrap();
+        let file_name = source.file_name().unwrap_or(OsStr::new(""));
+
+        let new_file_path = if destination.file_name().is_none() {
+            Path::new("").join(&destination).join(file_name)
+        } else {
+            destination
+        };
+
+        http::send_file(&i, &new_file_path, data).unwrap();
+        println!("Push {:?}, {:?}", source, new_file_path)
+    }
 }
 
 fn exit_failure(error: &str) {

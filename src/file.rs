@@ -61,6 +61,11 @@ pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
     return Ok(());
 }
 
+pub fn read_file(path: &Path) -> Result<Bytes, io::Error> {
+    let contents = fs::read_to_string(path)?;
+    return Ok(Bytes::from(contents));
+}
+
 // TESTS
 #[cfg(test)]
 mod tests {
