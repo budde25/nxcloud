@@ -82,11 +82,7 @@ mod tests {
     fn write_user_no_file() {
         let path = Path::new("test_write_user_no_file.txt");
         write_user(
-            Creds {
-                username: String::from("user"),
-                password: String::from("pass"),
-                server: Url::parse("https://cloud.example.com").unwrap(),
-            },
+            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
             path,
         )
         .expect("File should be created");
@@ -97,20 +93,14 @@ mod tests {
     fn write_user_overwrite_file() {
         let path = Path::new("test_write_user_overwrite_file.txt");
         write_user(
-            Creds {
-                username: String::from("user"),
-                password: String::from("pass"),
-                server: Url::parse("https://cloud.example.com").unwrap(),
-            },
+            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
             path,
         )
         .expect("File should be created");
+
+        // https should be added dynamically
         write_user(
-            Creds {
-                username: String::from("user2"),
-                password: String::from("pass2"),
-                server: Url::parse("https://cloud.example2.com").unwrap(),
-            },
+            Creds::new("user2", "pass2", "cloud.example2.com").unwrap(),
             path,
         )
         .expect("File should be created");
@@ -129,11 +119,7 @@ mod tests {
         let path = Path::new("test_read_and_write.txt");
         remove_file(path);
         write_user(
-            Creds {
-                username: String::from("user"),
-                password: String::from("pass"),
-                server: Url::parse("https://cloud.example.com").unwrap(),
-            },
+            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
             path,
         )
         .expect("File should be created");

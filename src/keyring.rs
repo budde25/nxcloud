@@ -1,4 +1,5 @@
 use super::Creds;
+use anyhow::anyhow;
 use base64::{decode, encode};
 use keyring::Keyring;
 use std::error::Error;
@@ -6,26 +7,31 @@ use url::Url;
 
 const SERVICE_NAME: &str = "nextcloud_client_cli";
 
-pub fn set_creds(username: &str, creds: &Creds) -> Result<(), Box<dyn Error>> {
+pub fn set_creds(username: &str, creds: &Creds) -> Result<(), anyhow::Error> {
     let keyring = Keyring::new(SERVICE_NAME, username);
     let creds_string = format!("{} {} {}", creds.username, creds.password, creds.server);
     let content = encode(creds_string);
-    keyring.set_password(&content)?;
+    if let Err(_) = keyring.set_password(&content) {
+        return Err(anyhow!("Keyring failed to set password"));
+    }
     return Ok(());
 }
 
-pub fn get_creds(username: &str) -> Result<Creds, Box<dyn Error>> {
+pub fn get_creds(username: &str) -> Result<Creds, anyhow::Error> {
     let keyring = Keyring::new(SERVICE_NAME, username);
-    let content = keyring.get_password()?;
-    let data = String::from_utf8_lossy(&decode(content)?).to_string();
+    if let Ok(content) = keyring.get_password() {
+        let data = String::from_utf8_lossy(&decode(content)?).to_string();
 
-    let v: Vec<&str> = data.split(' ').collect();
+        let v: Vec<&str> = data.split(' ').collect();
 
-    return Ok(Creds {
-        username: String::from(v[0]),
-        password: String::from(v[1]),
-        server: Url::parse(v[2])?,
-    });
+        return Ok(Creds {
+            username: String::from(v[0]),
+            password: String::from(v[1]),
+            server: Url::parse(v[2])?,
+        });
+    } else {
+        return Err(anyhow!("Keyring failed to retrive password"));
+    }
 }
 
 pub fn delete_creds(username: &str) -> Result<(), Box<dyn Error>> {
