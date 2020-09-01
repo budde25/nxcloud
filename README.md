@@ -1,8 +1,8 @@
 # NXCloud - NextCloud Client CLI
 
 [![Build Status](https://travis-ci.com/budde25/nextcloud-client-cli.svg?token=h2VpZBHUrSqEk7SD3Acq&branch=master)](https://travis-ci.com/budde25/nextcloud-client-cli)
-![Crates.io](https://img.shields.io/crates/v/nxcloud)
-![Crates.io](https://img.shields.io/crates/d/nxcloud)
+[![Crates.io](https://img.shields.io/crates/v/nxcloud)](https://crates.io/crates/nxcloud)
+[![Crates.io](https://img.shields.io/crates/d/nxcloud)](https://crates.io/crates/nxcloud)
 
 A CLI client to interact with a NextCloud server. It makes it possible to push and pull files between a client and a NextCloud server without the need of a GUI. This CLI is completly compatatible with Linux. It has also been built with Windows and MacOs in mind, but they are untested ATM and mileage may vary.
 
