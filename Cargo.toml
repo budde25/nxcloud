@@ -1,5 +1,5 @@
 [package]
-name = "nextcloudcli"
+name = "nxcloud"
 version = "0.1.0"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 edition = "2018"
