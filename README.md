@@ -9,7 +9,7 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 ## Usage
 
 `nxcloud -h` Show help.  
-`nxcloud login -s <server url> -u <username> -p <app password` Login to NextCloud server. Note, please make an app password from the security tab, DO NOT use you regular password.  
+`nxcloud login -s <server url> -u <username> -p <app password>` Login to NextCloud server. Note, please make an app password from the security tab, DO NOT use you regular password.  
 `nxcloud logout` Logout of NextCloud server.  
 `nxcloud status` Displays whether a user is currently logged in, and to which NextCloud server.
 `nxcloud push <source> <destination>` Push a file from local machine to NextCloud server.  
