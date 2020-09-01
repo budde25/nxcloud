@@ -51,7 +51,7 @@ impl Creds {
 /// Cli Enum for command parsing
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "nextcloudcli",
+    name = "nxcloud",
     about = "A command line client for interacting with your NextCloud server."
 )]
 enum Cli {
