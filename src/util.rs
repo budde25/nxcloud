@@ -6,12 +6,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 
-/// Exits the program while printing the error
-pub fn exit_failure(error: &str) {
-    eprintln!("Error: {}", error);
-    exit(1);
-}
-
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
     // just to through error if its a directory

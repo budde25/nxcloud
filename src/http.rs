@@ -50,18 +50,12 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
 
 #[tokio::main]
 pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
-    let path_str = if path.strip_prefix("/").is_ok() {
-        path.strip_prefix("/").unwrap()
-    } else {
-        &path
-    };
-
     let request: String = format!(
         "{url}{ext}{user}/{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
-        path = path_str.to_string_lossy()
+        path = path.to_string_lossy()
     );
 
     let client: Client = get_client()?;
@@ -82,18 +76,12 @@ pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
 
 #[tokio::main]
 pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Error> {
-    let path_str = if path.strip_prefix("/").is_ok() {
-        path.strip_prefix("/").unwrap()
-    } else {
-        &path
-    };
-
     let request: String = format!(
         "{url}{ext}{user}/{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
-        path = path_str.to_string_lossy()
+        path = path.to_string_lossy()
     );
 
     let client: Client = get_client()?;
