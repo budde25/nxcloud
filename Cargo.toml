@@ -2,15 +2,20 @@
 name = "nxcloud"
 version = "0.1.0"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
+description = "A client for interacting with your NextCloud server"
+readme = "README.md"
+license = "GPL-3.0-or-later"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+keywords = ["NextCloud", "CLI", "utilities"]
+categories = ["command-line-utilities"]
+homepage = "https://github.com/budde25/nextcloud-client-cli"
+repository = "https://github.com/budde25/nextcloud-client-cli"
 
 [dependencies]
 
-structopt = "0.3.16"
+structopt = "0.3.17"
 url = "2.1.1"
-reqwest = { version = "0.10.7", features = ["json"] }
+reqwest = { version = "0.10.8", features = ["json"] }
 tokio = { version = "0.2.22", features = ["full"] }
 xmltree = "0.10.1"
 bytes = "0.5.6"
