@@ -22,7 +22,7 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 
 ## Setup
 * Install [Rust](https://www.rust-lang.org/tools/install)  
-* Install libdbus-1-dev (Linux only) Ex: `sudo apt install libdbus-1-dev`
+* Install libdbus-1-dev (Linux only) Ex: `sudo apt install libdbus-1-dev`  
 * Clone repostitory  
 
 ### Compile and Run
@@ -31,14 +31,14 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 `cargo doc` Will build the documentation.  
 
 ### Testing
-`cargo test` Will run all the unit tests except for the ignored ones, ignored because they use network and won't pass 100% reliably.
-`cargo test -- --ignored` Will run all the tests, some may fail depending on server response time and your internet capabilities.
+`cargo test` Will run all the unit tests except for the ignored ones, ignored because they use network and won't pass 100% reliably.  
+`cargo test -- --ignored` Will run all the tests, some may fail depending on server response time and your internet capabilities.  
 
 ## Built With
 [Rust](https://www.rust-lang.org/)
 
 ## License
-[GNU General Public License v3.0](https://github.com/budde25/nextcloud-client-cli/blob/master/LICENSE)
+[GNU General Public License v3.0](https://github.com/budde25/nextcloud-client-cli/blob/master/LICENSE)  
 
 ## Author
 Ethan Budd
