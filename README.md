@@ -17,8 +17,9 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 `nxcloud -V` Display version info.  
 
 ## Setup
-* Install [Rust](https://www.rust-lang.org/tools/install).  
-* Clone repostitory.  
+* Install [Rust](https://www.rust-lang.org/tools/install)  
+* Install libdbus-1-dev (Linux only) Ex: `sudo apt install libdbus-1-dev`
+* Clone repostitory  
 
 ### Compile and Run
 `cargo build` Will build an executable.  
