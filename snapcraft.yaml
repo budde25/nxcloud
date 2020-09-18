@@ -8,6 +8,7 @@ description: |
 
 base: core18
 confinement: devmode
+grade: stable
 
 parts:
   nxcloud:
@@ -15,6 +16,8 @@ parts:
     source: .
     build-packages:
       - libdbus-1-dev
+      - build-essential
+      - libssl-dev
 
 apps:
   nxcloud:
