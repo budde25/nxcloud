@@ -1,0 +1,21 @@
+name: nxcloud
+version: git
+summary: A command line client for interacting with Nextcloud
+description: |
+  A command line interface client to interact with a NextCloud server. 
+  It makes it possible to push and pull files between 
+  a client and a NextCloud server without the need of a GUI.
+
+base: core18
+confinement: devmode
+
+parts:
+  nxcloud:
+    plugin: rust
+    source: .
+    build-packages:
+      - libdbus-1-dev
+
+apps:
+  nxcloud:
+    command: bin/nxcloud
