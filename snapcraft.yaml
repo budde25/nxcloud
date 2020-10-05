@@ -7,7 +7,7 @@ description: |
   a client and a NextCloud server without the need of a GUI.
 
 base: core18
-confinement: devmode
+confinement: strict
 grade: stable
 
 parts:
@@ -22,3 +22,5 @@ parts:
 apps:
   nxcloud:
     command: bin/nxcloud
+    plugs:
+      - network
