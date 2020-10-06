@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use bytes::Bytes;
 use file::DEFAULT_PATH;
 use std::path::PathBuf;
+use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
@@ -97,6 +98,8 @@ enum Cli {
 
 /// Entrypoint of the program, returns 0 on success
 fn main() -> anyhow::Result<()> {
+    Cli::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
+
     let cli = Cli::from_args();
     match cli {
         Cli::Status {} => status(),
