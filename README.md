@@ -9,7 +9,8 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 
 ## Install
 
-`cargo install nxcloud`, requires libdbus-1-dev to compile.
+`snap install nxcloud` reccommended.  
+`cargo install nxcloud`, requires libdbus-1-dev to compile, not reccomended.
 
 ## Usage
 
@@ -24,7 +25,7 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 ## Setup
 * Install [Rust](https://www.rust-lang.org/tools/install)  
 * Install libdbus-1-dev (Linux only) Ex: `sudo apt install libdbus-1-dev`  
-* Clone repostitory  
+* Clone repository  
 
 ### Compile and Run
 `cargo build` Will build an executable.  
