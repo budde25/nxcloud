@@ -10,21 +10,34 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 ## Install
 
 `snap install nxcloud` reccommended.  
-`cargo install nxcloud`, requires libdbus-1-dev to compile, not reccomended.
+`cargo install nxcloud`, requires extra packages to compile (list in setup), not reccomended.
 
 ## Usage
 
-`nxcloud -h` Show help.  
-`nxcloud login -s <server url> -u <username> -p <app password>` Login to NextCloud server. Note, please make an app password from the security tab, DO NOT use you regular password.  
-`nxcloud logout` Logout of NextCloud server.  
-`nxcloud status` Displays whether a user is currently logged in, and to which NextCloud server.
-`nxcloud push <source> <destination>` Push a file from local machine to NextCloud server.  
-`nxcloud pull <source> <destination>` Pull a file from NextCloud server to local machine.  
-`nxcloud -V` Display version info.  
+```                                                             
+nxcloud 0.1.0
+A command line client for interacting with your NextCloud server.
+
+USAGE:
+    nxcloud <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    help      Prints this message or the help of the given subcommand(s)
+    login     Login to your NextCloud server, please provide a app password for security
+    logout    Logout of your NextCloud server
+    pull      Pull a file from the server to your local machine
+    push      Push a file from your local machine to the server
+    status    Display's the account status
+```
+Use `nxcloud <subcommand> help` for help with that subcommand.  
 
 ## Setup
 * Install [Rust](https://www.rust-lang.org/tools/install)  
-* Install libdbus-1-dev (Linux only) Ex: `sudo apt install libdbus-1-dev`  
+* Install libdbus-1-dev, build-essential, libssl-dev (Linux only) <br> `apt install libdbus-1-dev build-essential libssl-dev` (Debain based)
 * Clone repository  
 
 ### Compile and Run
