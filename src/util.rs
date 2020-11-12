@@ -4,7 +4,6 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::exit;
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {

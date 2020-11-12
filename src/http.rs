@@ -4,23 +4,16 @@ use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
 use reqwest::Response;
+use reqwest::Method;
 use std::path::Path;
 use std::time::Duration;
-use xmltree::Element;
+use lazy_static::lazy_static;
 
-pub fn handle_response(result: Result<String, Error>) -> Result<Element, String> {
-    match result {
-        Ok(text) => match Element::parse(text.as_bytes()) {
-            Ok(xml) => return Ok(xml),
-            Err(e) => return Err(format!("Error: Failed to parse, {}, {}", e, text)),
-        },
-        Err(_) => return Err(String::from("Error: Failed to unwrap response data")),
-    }
-}
-
-fn get_client() -> Result<Client, Error> {
-    let timeout = Duration::new(10, 0);
-    return Ok(ClientBuilder::new().timeout(timeout).build()?);
+lazy_static!{
+    static ref CLIENT: Client = {
+        let timeout = Duration::new(10, 0);
+        ClientBuilder::new().timeout(timeout).build().unwrap()
+    };
 }
 
 #[tokio::main]
@@ -32,9 +25,7 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
         user = creds.username
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .get(&request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
@@ -58,9 +49,7 @@ pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
         path = path.to_string_lossy()
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .get(&request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
@@ -84,9 +73,7 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
         path = path.to_string_lossy()
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .put(&request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
@@ -97,6 +84,50 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
 
     match response {
         Ok(_) => return Ok(()),
+        Err(e) => return Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
+    let request: String = format!(
+        "{url}{ext}{user}/{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path.to_string_lossy()
+    );
+
+    let data = "<?xml version=\"1.0\"?>
+    <d:propfind  xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">
+      <d:prop>
+            <d:getlastmodified />
+            <d:getetag />
+            <d:getcontenttype />
+            <d:resourcetype />
+            <oc:fileid />
+            <oc:permissions />
+            <oc:size />
+            <d:getcontentlength />
+            <nc:has-preview />
+            <oc:favorite />
+            <oc:comments-unread />
+            <oc:owner-display-name />
+            <oc:share-types />
+      </d:prop>
+    </d:propfind>";
+
+    let response: Result<Response, Error> = CLIENT
+        .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .header("OCS-APIRequest", "true")
+        .body(data)
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(resp) => return Ok(resp.text().await?),
         Err(e) => return Err(e),
     }
 }
@@ -151,6 +182,5 @@ mod tests {
             username: String::from("test"),
             password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
         });
-        handle_response(resp).expect("Handle response should work");
     }
 }

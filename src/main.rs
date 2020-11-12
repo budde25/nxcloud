@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use bytes::Bytes;
-use file::DEFAULT_PATH;
 use std::path::PathBuf;
 use structopt::clap::Shell;
 use structopt::StructOpt;
@@ -94,6 +93,13 @@ enum Cli {
         #[structopt(parse(from_os_str))]
         destination: PathBuf,
     },
+    /// Pull a file from the server to your local machine.
+    #[structopt(name = "ls")]
+    Ls {
+        /// Path to source file.
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+    },
 }
 
 /// Entrypoint of the program, returns 0 on success
@@ -117,6 +123,9 @@ fn main() -> anyhow::Result<()> {
             source,
             destination,
         } => pull(source, destination)?,
+        Cli::Ls {
+            path,
+        } => ls(path)?
     };
     return Ok(());
 }
@@ -152,6 +161,14 @@ fn status() {
         }
         Err(_) => println!("Not logged in"),
     }
+}
+
+fn ls(path: PathBuf) -> anyhow::Result<()> {
+    let creds: Creds = keyring::get_creds("username")?;
+    let list: String = http::get_list(&creds, &path)?;
+    println!("{}", list);
+
+    Ok(())
 }
 
 /// Pulls a file from the server to your computer
