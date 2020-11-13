@@ -36,7 +36,7 @@ impl Creds {
     /// # Arguments
     /// `username` - String slice that represent a nextcloud login username  
     /// `password` - Sring slice that represents a nextcloud app password  
-    /// `server` - String slice that represents a nextcloud server url, http or https can be ommited, https is the default  
+    /// `server` - String slice that represents a nextcloud server url, http or https can be omitted, https is the default
     ///
     /// # Examples
     /// ```
@@ -141,7 +141,7 @@ enum Command {
         path: PathBuf,
     },
 
-    /// Remove a file or directory, WARNING deletes files recusivly.
+    /// Remove a file or directory, WARNING deletes files recursively.
     #[structopt(name = "rm")]
     Rm {
         /// Path to file or directory to remove.
@@ -252,7 +252,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
-    let mut fullpath: Option<String> = None;
+    let mut full_path: Option<String> = None;
     for i in items {
         let resp = i.as_element().unwrap().to_owned().children;
         let file = resp[0].clone().as_element().unwrap().to_owned().children[0]
@@ -260,10 +260,10 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
             .as_text()
             .unwrap()
             .to_owned();
-        if fullpath.is_none() {
-            fullpath = Some(file);
+        if full_path.is_none() {
+            full_path = Some(file);
         } else {
-            let a = fullpath.clone().unwrap();
+            let a = full_path.clone().unwrap();
             let new_name = file.replace(&a, "").replace("%20", " ");
             if new_name.contains(" ") {
                 files.push("'".to_owned() + &new_name + "'")

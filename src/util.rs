@@ -30,7 +30,7 @@ pub fn format_destination_pull(source: &Path, destination: &Path) -> anyhow::Res
     Ok(new_file_path)
 }
 
-/// Formats the destination based of the source, and removes the '/', '..', or '.' prefixs
+/// Formats the destination based of the source, and removes the '/', '..', or '.' prefixes
 /// Ex: source data.txt and dest . then return data.txt
 pub fn format_destination_push(source: &Path, destination: &Path) -> anyhow::Result<PathBuf> {
     let source_file_name = get_source_file_name(source)?;
@@ -48,7 +48,7 @@ pub fn format_destination_push(source: &Path, destination: &Path) -> anyhow::Res
     Ok(new_file_path)
 }
 
-/// Gets the file name from the source directory, returns Restult of OsString or Error String
+/// Gets the file name from the source directory, returns Result of OsString or Error String
 fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
     if !path_is_file(source) {
         return Err(anyhow!("Source is a directory"));
@@ -62,7 +62,7 @@ fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
 }
 
 /// Checks if a generic path is pointing to a file as opposed to a directory
-/// Directory is definied atm as ending with '.','..','/','*', though star is just multiple files, cant support it atm
+/// Directory is defined atm as ending with '.','..','/','*', though star is just multiple files, cant support it atm
 fn path_is_file(path: &Path) -> bool {
     let path_str = path.to_string_lossy();
     if path_str.ends_with('.') || path_str.ends_with('/') || path_str.ends_with('*') {
@@ -100,7 +100,7 @@ fn path_remove_prefix(mut path: &Path) -> &Path {
     path
 }
 
-/// Changes the file_name if the path but unlick the default method correctly handles paths ending with a .
+/// Changes the file_name if the path but unlike the default method correctly handles paths ending with a .
 fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
     let parent = if let Some(p) = path.parent() {
         if path_is_file(path) {
