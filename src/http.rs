@@ -60,8 +60,8 @@ pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
         .error_for_status();
 
     match response {
-        Ok(resp) => return Ok(resp.bytes().await?),
-        Err(e) => return Err(e),
+        Ok(resp) => Ok(resp.bytes().await?),
+        Err(e) => Err(e),
     }
 }
 
@@ -85,8 +85,32 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
         .error_for_status();
 
     match response {
-        Ok(_) => return Ok(()),
-        Err(e) => return Err(e),
+        Ok(_) => Ok(()),
+        Err(e) =>Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn make_folder(creds: &Creds, path: &Path) -> Result<(), Error> {
+    let request: String = format!(
+        "{url}{ext}{user}/{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path.to_string_lossy()
+    );
+
+    let response: Result<Response, Error> = CLIENT
+        .request(Method::from_bytes(b"MKCOL").unwrap(), &request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .header("OCS-APIRequest", "true")
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
     }
 }
 

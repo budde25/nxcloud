@@ -108,6 +108,7 @@ enum Command {
         #[structopt(parse(from_os_str))]
         destination: PathBuf,
     },
+
     /// List files and directories.
     #[structopt(name = "ls")]
     Ls {
@@ -120,6 +121,22 @@ enum Command {
 
         #[structopt(short, long)]
         all: bool,
+    },
+
+    /// Make a directory.
+    #[structopt(name = "mkdir")]
+    Mkdir {
+        /// Path to directory to create.
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+    },
+
+    /// Remove a file or directory, WARNING deletes files recusivly.
+    #[structopt(name = "rm")]
+    Rm {
+        /// Path to file or directory to remove.
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
     },
 }
 
@@ -168,8 +185,10 @@ fn main() -> anyhow::Result<()> {
             destination,
         } => pull(source, destination)?,
         Command::Ls { path, list, all } => ls(path, list, all)?,
+        Command::Mkdir {path} => mkdir(path)?,
+        Command::Rm {path} => rm(path)?,
     };
-    return Ok(());
+    Ok(())
 }
 
 /// Login to the nextcloud server
@@ -205,6 +224,7 @@ fn status() {
     }
 }
 
+/// lists files
 fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
     let creds: Creds = keyring::get_creds("username")?;
@@ -244,6 +264,18 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn mkdir(path: PathBuf) -> anyhow::Result<()> {
+    let creds: Creds = keyring::get_creds("username")?;
+    
+    http::make_folder(&creds, &path)?;
+    Ok(())
+}
+
+fn rm(path: PathBuf) -> anyhow::Result<()> {
+    println!("Not implemented yet, wan't to make it safe");
+    Ok(())
+}
+
 /// Pulls a file from the server to your computer
 fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
@@ -255,7 +287,7 @@ fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     file::create_file(&new_dest, &data)?;
 
     println!("Pulled {:?}, {:?}", new_src, new_dest);
-    return Ok(());
+    Ok(())
 }
 
 /// Pushes a file from your computer to the server
@@ -268,7 +300,7 @@ fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     http::send_file(&creds, &new_dest, data)?;
 
     println!("Push {:?}, {:?}", source, new_dest);
-    return Ok(());
+    Ok(())
 }
 
 fn parse_url(src: &str) -> Result<Url, ParseError> {
