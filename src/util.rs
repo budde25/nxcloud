@@ -4,6 +4,8 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
@@ -113,6 +115,56 @@ fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
         file_name.to_path_buf()
     };
     parent
+}
+
+pub fn get_confirmation(warning: &str) -> anyhow::Result<bool> {
+    let mut rl = Editor::<()>::new();
+    let prompt = format!("{}\n>> ", warning);
+    let readline = rl.readline(&prompt);
+
+    match readline {
+        Ok(line) => {
+            let clean_line = line.trim().to_lowercase();
+            if clean_line == "y" || clean_line == "yes" {
+                return Ok(true);
+            }
+        },
+        Err(ReadlineError::Interrupted) => {
+            println!("CTRL-C");
+        },
+        Err(ReadlineError::Eof) => {
+            println!("CTRL-D");
+        },
+        Err(err) => {
+            println!("Error: {:?}", err);
+        }
+    }
+    Ok(false)
+}
+
+pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> anyhow::Result<PathBuf> {
+    // Overide dot methods cause they tend to fail
+    if end.to_str().is_some() && end.to_str().unwrap() == "." {
+        return Ok(start);
+    }
+    if end.to_str().is_some() && end.to_str().unwrap() == ".." {
+        return match end.parent() {
+            Some(p) => Ok(p.to_path_buf()),
+            None => Ok(PathBuf::from("/"))
+        }
+    }
+
+    if end.starts_with("/") {
+        match end.parse_dot() {
+            Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
+            Err(_) => Ok(PathBuf::from("/"))
+        }
+    } else {
+        match start.join(end).parse_dot() {
+            Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
+            Err(_) => Ok(PathBuf::from("/"))
+        }
+    }
 }
 
 #[cfg(test)]

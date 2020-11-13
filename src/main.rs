@@ -1,8 +1,7 @@
 use anyhow::anyhow;
 use bytes::Bytes;
-use log::info;
+use log::{info, error};
 use std::path::PathBuf;
-use std::path::Path;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
@@ -142,6 +141,10 @@ enum Command {
         /// Path to file or directory to remove.
         #[structopt(parse(from_os_str))]
         path: PathBuf,
+
+        // Force delete, will not show warning.
+        #[structopt(short, long)]
+        force: bool,
     },
 
     /// Enter an interactive prompt.
@@ -204,16 +207,23 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
         Command::Push {
             source,
             destination,
-        } => push(source, destination, current_dir.clone())?,
+        } => push(source, util::join_dedot_path(current_dir.clone(), destination)?)?,
         Command::Pull {
             source,
             destination,
-        } => pull(source, destination, current_dir.clone())?,
-        Command::Ls { path, list, all } => ls(path, current_dir.clone(), list, all)?,
-        Command::Mkdir {path} => mkdir(path, current_dir.clone())?,
-        Command::Rm {path} => rm(path, current_dir.clone())?,
+        } => pull( util::join_dedot_path(current_dir.clone(), source)?, destination)?,
+        Command::Ls { path, list, all } => {
+            let fp = if path.is_none() {
+                current_dir.clone()
+            } else {
+                util::join_dedot_path(current_dir.clone(), path.unwrap())?
+            };
+            ls(fp, list, all)?;
+        },
+        Command::Mkdir {path} => mkdir(util::join_dedot_path(current_dir.clone(), path)?)?,
+        Command::Rm {path, force} => rm(util::join_dedot_path(current_dir.clone(), path)?, force)?,
         Command::Shell {} => shell(current_dir.clone())?,
-        Command::Cd{path} => current_dir = cd(path, current_dir)?,
+        Command::Cd{path} => current_dir = util::join_dedot_path(current_dir.clone(), path)?,
     };
     Ok(current_dir)
 }
@@ -252,16 +262,11 @@ fn status() {
 }
 
 /// lists files
-fn ls(path: Option<PathBuf>, current_dir: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
+fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
-    let fp = if path.is_none() {
-        current_dir
-    } else {
-        current_dir.join(path.unwrap())
-    };
 
     let creds: Creds = keyring::get_creds("username")?;
-    let data: String = http::get_list(&creds, &fp)?;
+    let data: String = http::get_list(&creds, &path)?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
@@ -295,25 +300,38 @@ fn ls(path: Option<PathBuf>, current_dir: PathBuf, list: bool, all: bool) -> any
     Ok(())
 }
 
-fn mkdir(path: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
+fn mkdir(path: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
     
-    http::make_folder(&creds, &current_dir.join(path))?;
+    http::make_folder(&creds, &path)?;
     Ok(())
 }
 
-fn rm(_path: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
-    println!("Not implemented yet, wan't to make it safe");
+fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
+
+    if path.to_string_lossy() == "/" {
+        error!("Deleting the root is not supported");
+        return Ok(());
+    }
+
+    let warning = format!("Are you sure you want to delete '{}', WARNING directorys DELETE ALL FILES recursively (y/n)", path.to_string_lossy());
+
+    if !force && !util::get_confirmation(&warning)? {
+        return Ok(())
+    }
+
+    let creds: Creds = keyring::get_creds("username")?;
+
+    http::delete(&creds, &path)?;
     Ok(())
 }
 
 /// Pulls a file from the server to your computer
-fn pull(source: PathBuf, destination: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
+fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
 
-    let full_source = current_dir.join(source);
-    let new_dest = util::format_destination_pull(&full_source, &destination)?;
-    let new_src = util::format_source_pull(&full_source)?;
+    let new_dest = util::format_destination_pull(&source, &destination)?;
+    let new_src = util::format_source_pull(&source)?;
 
     let data: Bytes = http::get_file(&creds, &new_src)?;
     file::create_file(&new_dest, &data)?;
@@ -323,11 +341,11 @@ fn pull(source: PathBuf, destination: PathBuf, current_dir: PathBuf) -> anyhow::
 }
 
 /// Pushes a file from your computer to the server
-fn push(source: PathBuf, destination: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
+fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
 
     let data: Bytes = file::read_file(&source)?;
-    let new_dest = util::format_destination_push(&source, &current_dir.join(destination))?;
+    let new_dest = util::format_destination_push(&source, &destination)?;
 
     http::send_file(&creds, &new_dest, data)?;
 
@@ -375,31 +393,6 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
     }
     rl.save_history(&hist_path).unwrap();
     Ok(())
-}
-
-fn cd(path: PathBuf, current_dir: PathBuf) -> anyhow::Result<PathBuf> {
-    // Overide dot methods cause they tend to fail
-    if path.to_str().is_some() && path.to_str().unwrap() == "." {
-        return Ok(current_dir);
-    }
-    if path.to_str().is_some() && path.to_str().unwrap() == ".." {
-        return match current_dir.parent() {
-            Some(p) => Ok(p.to_path_buf()),
-            None => Ok(PathBuf::from("/"))
-        }
-    }
-
-    if path.starts_with("/") {
-        match path.parse_dot() {
-            Ok(p) => Ok(p.to_path_buf()),
-            Err(_) => Ok(PathBuf::from("/"))
-        }
-    } else {
-        match current_dir.join(path).parse_dot() {
-            Ok(p) => Ok(p.to_path_buf()),
-            Err(_) => Ok(PathBuf::from("/"))
-        }
-    }
 }
 
 fn parse_url(src: &str) -> Result<Url, ParseError> {
