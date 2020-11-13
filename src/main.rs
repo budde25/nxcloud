@@ -108,7 +108,7 @@ enum Command {
         #[structopt(parse(from_os_str))]
         destination: PathBuf,
     },
-    /// Pull a file from the server to your local machine.
+    /// List files and directories.
     #[structopt(name = "ls")]
     Ls {
         /// Path to source file.

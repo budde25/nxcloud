@@ -100,7 +100,7 @@ pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
         path = path.to_string_lossy()
     );
 
-    let data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    static DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <d:propfind xmlns:d=\"DAV:\">
       <d:prop xmlns:oc=\"http://owncloud.org/ns\">
         <d:getlastmodified/>
@@ -116,7 +116,7 @@ pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
         .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("depth", "1")
-        .body(data)
+        .body(DATA)
         .send()
         .await?
         .error_for_status();
