@@ -31,7 +31,7 @@ pub fn read_user(path: &Path) -> Result<Creds, String> {
         server: Url::parse(v[2]).unwrap(),
     };
 
-    return Ok(creds);
+    Ok(creds)
 }
 
 pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
@@ -41,15 +41,15 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     let encoded = encode(contents);
     let mut file = File::create(&path)?;
     file.write(encoded.as_bytes())?;
-    return Ok(());
+    Ok(())
 }
 
 pub fn remove_file(path: &Path) -> bool {
     if path.exists() && path.is_file() {
         fs::remove_file(path).expect("Error: Failed remove to file");
-        return true;
+        true
     } else {
-        return false;
+        false
     }
 }
 
@@ -58,12 +58,12 @@ pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
         let mut file = File::create(&path)?;
         file.write(data)?;
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn read_file(path: &Path) -> Result<Bytes, io::Error> {
     let contents = fs::read_to_string(path)?;
-    return Ok(Bytes::from(contents));
+    Ok(Bytes::from(contents))
 }
 
 // TESTS

@@ -10,10 +10,10 @@ pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
     // just to through error if its a directory
     get_source_file_name(source)?;
 
-    return Ok(path_remove_prefix(source)
+    Ok(path_remove_prefix(source)
         .parse_dot()
         .unwrap()
-        .to_path_buf());
+        .to_path_buf())
 }
 
 /// Formats the destination based of the source, does not need to be cleaned up for url unlike push
@@ -27,7 +27,7 @@ pub fn format_destination_pull(source: &Path, destination: &Path) -> anyhow::Res
         path_with_file_name(destination, Path::new(&source_file_name))
     };
 
-    return Ok(new_file_path);
+    Ok(new_file_path)
 }
 
 /// Formats the destination based of the source, and removes the '/', '..', or '.' prefixs

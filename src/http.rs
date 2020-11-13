@@ -1,17 +1,20 @@
 use super::Creds;
 use bytes::Bytes;
+use lazy_static::lazy_static;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
-use reqwest::Response;
 use reqwest::Method;
+use reqwest::Response;
 use std::path::Path;
 use std::time::Duration;
-use lazy_static::lazy_static;
 
-lazy_static!{
+lazy_static! {
     static ref CLIENT: Client = {
-        ClientBuilder::new().timeout(Duration::new(10, 0)).build().unwrap()
+        ClientBuilder::new()
+            .timeout(Duration::new(10, 0))
+            .build()
+            .unwrap()
     };
 }
 

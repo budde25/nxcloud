@@ -1,11 +1,10 @@
 use anyhow::anyhow;
 use bytes::Bytes;
+use log::info;
 use std::path::PathBuf;
-use structopt::clap::Shell;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
-use log::{info};
 use xmltree;
 
 mod file;
@@ -49,7 +48,6 @@ impl Creds {
         });
     }
 }
-
 
 /// Cli Enum for command parsing
 #[derive(StructOpt)]
@@ -131,8 +129,8 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Opt::from_args();
 
-     // Sets the log level
-     match cli.verbose {
+    // Sets the log level
+    match cli.verbose {
         0 => env_logger::builder()
             .filter_level(log::LevelFilter::Warn)
             .format_timestamp(None)
@@ -169,11 +167,7 @@ fn main() -> anyhow::Result<()> {
             source,
             destination,
         } => pull(source, destination)?,
-        Command::Ls {
-            path,
-            list,
-            all
-        } => ls(path, list, all)?
+        Command::Ls { path, list, all } => ls(path, list, all)?,
     };
     return Ok(());
 }
@@ -217,11 +211,15 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     let data: String = http::get_list(&creds, &path)?;
     let xml = xmltree::Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
-    let mut files: Vec<String> = vec![]; 
+    let mut files: Vec<String> = vec![];
     let mut fullpath: Option<String> = None;
     for i in items {
         let resp = i.as_element().unwrap().to_owned().children;
-        let file = resp[0].clone().as_element().unwrap().to_owned().children[0].clone().as_text().unwrap().to_owned();
+        let file = resp[0].clone().as_element().unwrap().to_owned().children[0]
+            .clone()
+            .as_text()
+            .unwrap()
+            .to_owned();
         if fullpath.is_none() {
             fullpath = Some(file);
         } else {
@@ -236,7 +234,11 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
             }
         }
     }
-    let print: String = if list { files.join("\n") } else { files.join("  ") };
+    let print: String = if list {
+        files.join("\n")
+    } else {
+        files.join("  ")
+    };
     println!("{}", print);
 
     Ok(())

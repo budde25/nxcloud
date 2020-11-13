@@ -14,7 +14,7 @@ pub fn set_creds(username: &str, creds: &Creds) -> Result<(), anyhow::Error> {
     if let Err(_) = keyring.set_password(&content) {
         return Err(anyhow!("Keyring failed to set password"));
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn get_creds(username: &str) -> Result<Creds, anyhow::Error> {
@@ -24,20 +24,20 @@ pub fn get_creds(username: &str) -> Result<Creds, anyhow::Error> {
 
         let v: Vec<&str> = data.split(' ').collect();
 
-        return Ok(Creds {
+        Ok(Creds {
             username: String::from(v[0]),
             password: String::from(v[1]),
             server: Url::parse(v[2])?,
-        });
+        })
     } else {
-        return Err(anyhow!("Keyring failed to retrive password"));
+        Err(anyhow!("Keyring failed to retrive password"))
     }
 }
 
 pub fn delete_creds(username: &str) -> Result<(), Box<dyn Error>> {
     let keyring = Keyring::new(SERVICE_NAME, username);
     keyring.delete_password()?;
-    return Ok(());
+    Ok(())
 }
 
 #[cfg(test)]
