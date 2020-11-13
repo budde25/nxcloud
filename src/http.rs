@@ -11,8 +11,7 @@ use lazy_static::lazy_static;
 
 lazy_static!{
     static ref CLIENT: Client = {
-        let timeout = Duration::new(10, 0);
-        ClientBuilder::new().timeout(timeout).build().unwrap()
+        ClientBuilder::new().timeout(Duration::new(10, 0)).build().unwrap()
     };
 }
 
@@ -98,29 +97,22 @@ pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
         path = path.to_string_lossy()
     );
 
-    let data = "<?xml version=\"1.0\"?>
-    <d:propfind  xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">
-      <d:prop>
-            <d:getlastmodified />
-            <d:getetag />
-            <d:getcontenttype />
-            <d:resourcetype />
-            <oc:fileid />
-            <oc:permissions />
-            <oc:size />
-            <d:getcontentlength />
-            <nc:has-preview />
-            <oc:favorite />
-            <oc:comments-unread />
-            <oc:owner-display-name />
-            <oc:share-types />
+    let data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    <d:propfind xmlns:d=\"DAV:\">
+      <d:prop xmlns:oc=\"http://owncloud.org/ns\">
+        <d:getlastmodified/>
+        <d:getcontentlength/>
+        <d:getcontenttype/>
+        <oc:permissions/>
+        <d:resourcetype/>
+        <d:getetag/>
       </d:prop>
     </d:propfind>";
 
     let response: Result<Response, Error> = CLIENT
         .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
         .basic_auth(&creds.username, Some(&creds.password))
-        .header("OCS-APIRequest", "true")
+        .header("depth", "1")
         .body(data)
         .send()
         .await?
