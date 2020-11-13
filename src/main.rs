@@ -377,7 +377,7 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
     Ok(())
 }
 
-fn cd(mut path: PathBuf, current_dir: PathBuf) -> anyhow::Result<PathBuf> {
+fn cd(path: PathBuf, current_dir: PathBuf) -> anyhow::Result<PathBuf> {
     // Overide dot methods cause they tend to fail
     if path.to_str().is_some() && path.to_str().unwrap() == "." {
         return Ok(current_dir);
