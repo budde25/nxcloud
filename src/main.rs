@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use bytes::Bytes;
 use log::info;
 use std::path::PathBuf;
+use std::path::Path;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
@@ -9,7 +10,7 @@ use xmltree::Element;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use dirs;
-use lazy_static::lazy_static;
+use path_dedot::ParseDot;
 
 mod file;
 mod http;
@@ -22,12 +23,6 @@ pub struct Creds {
     pub username: String,
     pub password: String,
     pub server: Url,
-}
-
-lazy_static! {
-    static ref FULL_PATH: PathBuf = {
-        PathBuf::from("/")
-    };
 }
 
 impl Creds {
@@ -124,7 +119,7 @@ enum Command {
     Ls {
         /// Path to source file.
         #[structopt(parse(from_os_str))]
-        path: PathBuf,
+        path: Option<PathBuf>,
 
         #[structopt(short, long)]
         list: bool,
@@ -152,19 +147,23 @@ enum Command {
     /// Enter an interactive prompt.
     #[structopt(name = "shell")]
     Shell{},
+
+    /// Change directory of remote - Shell Only.
+    #[structopt(name = "cd")]
+    Cd{
+        /// directory to change to.
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+    },
 }
 
 /// Entrypoint of the program, returns 0 on success
 fn main() -> anyhow::Result<()> {
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
+    let current_dir = PathBuf::from("/");
 
     let cli = Opt::from_args();
-    run(cli)?;
 
-    Ok(())
-}
-
-fn run(cli: Opt) -> anyhow::Result<()> {
     // Sets the log level
     match cli.verbose {
         0 => env_logger::builder()
@@ -187,6 +186,13 @@ fn run(cli: Opt) -> anyhow::Result<()> {
 
     info!("Logger has been initialized");
 
+    run(cli, current_dir)?;
+
+    Ok(())
+}
+
+fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
+
     match cli.cmd {
         Command::Status {} => status(),
         Command::Login {
@@ -198,17 +204,18 @@ fn run(cli: Opt) -> anyhow::Result<()> {
         Command::Push {
             source,
             destination,
-        } => push(source, destination)?,
+        } => push(source, destination, current_dir.clone())?,
         Command::Pull {
             source,
             destination,
-        } => pull(source, destination)?,
-        Command::Ls { path, list, all } => ls(path, list, all)?,
-        Command::Mkdir {path} => mkdir(path)?,
-        Command::Rm {path} => rm(path)?,
-        Command::Shell {} => shell()?,
+        } => pull(source, destination, current_dir.clone())?,
+        Command::Ls { path, list, all } => ls(path, current_dir.clone(), list, all)?,
+        Command::Mkdir {path} => mkdir(path, current_dir.clone())?,
+        Command::Rm {path} => rm(path, current_dir.clone())?,
+        Command::Shell {} => shell(current_dir.clone())?,
+        Command::Cd{path} => current_dir = cd(path, current_dir)?,
     };
-    Ok(())
+    Ok(current_dir)
 }
 
 /// Login to the nextcloud server
@@ -245,10 +252,16 @@ fn status() {
 }
 
 /// lists files
-fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
+fn ls(path: Option<PathBuf>, current_dir: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
+    let fp = if path.is_none() {
+        current_dir
+    } else {
+        current_dir.join(path.unwrap())
+    };
+
     let creds: Creds = keyring::get_creds("username")?;
-    let data: String = http::get_list(&creds, &path)?;
+    let data: String = http::get_list(&creds, &fp)?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
@@ -282,24 +295,25 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn mkdir(path: PathBuf) -> anyhow::Result<()> {
+fn mkdir(path: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
     
-    http::make_folder(&creds, &path)?;
+    http::make_folder(&creds, &current_dir.join(path))?;
     Ok(())
 }
 
-fn rm(_path: PathBuf) -> anyhow::Result<()> {
+fn rm(_path: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
     println!("Not implemented yet, wan't to make it safe");
     Ok(())
 }
 
 /// Pulls a file from the server to your computer
-fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
+fn pull(source: PathBuf, destination: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
 
-    let new_dest = util::format_destination_pull(&source, &destination)?;
-    let new_src = util::format_source_pull(&source)?;
+    let full_source = current_dir.join(source);
+    let new_dest = util::format_destination_pull(&full_source, &destination)?;
+    let new_src = util::format_source_pull(&full_source)?;
 
     let data: Bytes = http::get_file(&creds, &new_src)?;
     file::create_file(&new_dest, &data)?;
@@ -309,11 +323,11 @@ fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
 }
 
 /// Pushes a file from your computer to the server
-fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
+fn push(source: PathBuf, destination: PathBuf, current_dir: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
 
     let data: Bytes = file::read_file(&source)?;
-    let new_dest = util::format_destination_push(&source, &destination)?;
+    let new_dest = util::format_destination_push(&source, &current_dir.join(destination))?;
 
     http::send_file(&creds, &new_dest, data)?;
 
@@ -321,12 +335,12 @@ fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn shell() -> anyhow::Result<()>{
+fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
     let mut rl = Editor::<()>::new();
     let hist_path = dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
     rl.load_history(&hist_path);
     loop {
-        let prompt = format!("[{}] >> ", FULL_PATH.to_string_lossy());
+        let prompt = format!("[{}] >> ", current_dir.to_string_lossy());
         let readline = rl.readline( &prompt);
         match readline {
             Ok(line) => {
@@ -345,7 +359,7 @@ fn shell() -> anyhow::Result<()>{
                         continue;
                     }
                 };
-                run(cli)?;
+                current_dir = run(cli, current_dir.to_path_buf())?;
             },
             Err(ReadlineError::Interrupted) => {
                 break
@@ -361,6 +375,31 @@ fn shell() -> anyhow::Result<()>{
     }
     rl.save_history(&hist_path).unwrap();
     Ok(())
+}
+
+fn cd(mut path: PathBuf, current_dir: PathBuf) -> anyhow::Result<PathBuf> {
+    // Overide dot methods cause they tend to fail
+    if path.to_str().is_some() && path.to_str().unwrap() == "." {
+        return Ok(current_dir);
+    }
+    if path.to_str().is_some() && path.to_str().unwrap() == ".." {
+        return match current_dir.parent() {
+            Some(p) => Ok(p.to_path_buf()),
+            None => Ok(PathBuf::from("/"))
+        }
+    }
+
+    if path.starts_with("/") {
+        match path.parse_dot() {
+            Ok(p) => Ok(p.to_path_buf()),
+            Err(_) => Ok(PathBuf::from("/"))
+        }
+    } else {
+        match current_dir.join(path).parse_dot() {
+            Ok(p) => Ok(p.to_path_buf()),
+            Err(_) => Ok(PathBuf::from("/"))
+        }
+    }
 }
 
 fn parse_url(src: &str) -> Result<Url, ParseError> {
