@@ -6,6 +6,10 @@ use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
 use xmltree::Element;
+use rustyline::Editor;
+use rustyline::error::ReadlineError;
+use dirs;
+use lazy_static::lazy_static;
 
 mod file;
 mod http;
@@ -18,6 +22,12 @@ pub struct Creds {
     pub username: String,
     pub password: String,
     pub server: Url,
+}
+
+lazy_static! {
+    static ref FULL_PATH: PathBuf = {
+        PathBuf::from("/")
+    };
 }
 
 impl Creds {
@@ -138,6 +148,10 @@ enum Command {
         #[structopt(parse(from_os_str))]
         path: PathBuf,
     },
+
+    /// Enter an interactive prompt.
+    #[structopt(name = "shell")]
+    Shell{},
 }
 
 /// Entrypoint of the program, returns 0 on success
@@ -145,7 +159,12 @@ fn main() -> anyhow::Result<()> {
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
 
     let cli = Opt::from_args();
+    run(cli)?;
 
+    Ok(())
+}
+
+fn run(cli: Opt) -> anyhow::Result<()> {
     // Sets the log level
     match cli.verbose {
         0 => env_logger::builder()
@@ -187,6 +206,7 @@ fn main() -> anyhow::Result<()> {
         Command::Ls { path, list, all } => ls(path, list, all)?,
         Command::Mkdir {path} => mkdir(path)?,
         Command::Rm {path} => rm(path)?,
+        Command::Shell {} => shell()?,
     };
     Ok(())
 }
@@ -298,6 +318,48 @@ fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     http::send_file(&creds, &new_dest, data)?;
 
     println!("Push {:?}, {:?}", source, new_dest);
+    Ok(())
+}
+
+fn shell() -> anyhow::Result<()>{
+    let mut rl = Editor::<()>::new();
+    let hist_path = dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
+    rl.load_history(&hist_path);
+    loop {
+        let prompt = format!("[{}] >> ", FULL_PATH.to_string_lossy());
+        let readline = rl.readline( &prompt);
+        match readline {
+            Ok(line) => {
+                if line.as_str().to_lowercase() == "exit" {
+                    break;
+                }
+
+                rl.add_history_entry(line.as_str());
+                let mut nxcloud: Vec<&str> = if line.as_str().starts_with("nxcloud") { vec![] } else { vec!["nxcloud"] };
+                let vec: Vec<&str> = line.split(" ").collect::<Vec<&str>>();
+                nxcloud.extend(vec);
+                let cli = match Opt::from_iter_safe(nxcloud) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        println!("{}", e);
+                        continue;
+                    }
+                };
+                run(cli)?;
+            },
+            Err(ReadlineError::Interrupted) => {
+                break
+            },
+            Err(ReadlineError::Eof) => {
+                break
+            },
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
+        }
+    }
+    rl.save_history(&hist_path).unwrap();
     Ok(())
 }
 
