@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
-use xmltree;
+use xmltree::Element;
 
 mod file;
 mod http;
@@ -41,11 +41,11 @@ impl Creds {
         };
 
         let url: Url = Url::parse(&fqdn)?;
-        return Ok(Creds {
+        Ok(Creds {
             username: String::from(username),
             password: String::from(password),
             server: url,
-        });
+        })
     }
 }
 
@@ -199,7 +199,7 @@ fn login(server: Url, username: String, password: String) -> anyhow::Result<()> 
     keyring::set_creds("username", &creds)?;
 
     println!("Login successful");
-    return Ok(());
+    Ok(())
 }
 
 /// Logout of the nextcloud server
@@ -208,7 +208,7 @@ fn logout() -> anyhow::Result<()> {
         Ok(_) => println!("Logout Successful"),
         Err(_) => return Err(anyhow!("Logout Failed")),
     }
-    return Ok(());
+    Ok(())
 }
 
 /// Prints the username and server of logged in user
@@ -229,7 +229,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
     let creds: Creds = keyring::get_creds("username")?;
     let data: String = http::get_list(&creds, &path)?;
-    let xml = xmltree::Element::parse(data.as_bytes()).unwrap();
+    let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
     let mut fullpath: Option<String> = None;
@@ -247,10 +247,8 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
             let new_name = file.replace(&a, "").replace("%20", " ");
             if new_name.contains(" ") {
                 files.push("'".to_owned() + &new_name + "'")
-            } else {
-                if !new_name.starts_with(".") || all {
-                    files.push(new_name);
-                }
+            } else if !new_name.starts_with('.') || all {
+                files.push(new_name);
             }
         }
     }
@@ -271,7 +269,7 @@ fn mkdir(path: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn rm(path: PathBuf) -> anyhow::Result<()> {
+fn rm(_path: PathBuf) -> anyhow::Result<()> {
     println!("Not implemented yet, wan't to make it safe");
     Ok(())
 }

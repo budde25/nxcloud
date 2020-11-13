@@ -40,7 +40,7 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     let contents = format!("{} {} {}", creds.username, creds.password, creds.server);
     let encoded = encode(contents);
     let mut file = File::create(&path)?;
-    file.write(encoded.as_bytes())?;
+    file.write_all(encoded.as_bytes())?;
     Ok(())
 }
 
@@ -56,7 +56,7 @@ pub fn remove_file(path: &Path) -> bool {
 pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
     if !path.exists() && !path.is_dir() {
         let mut file = File::create(&path)?;
-        file.write(data)?;
+        file.write_all(data)?;
     }
     Ok(())
 }

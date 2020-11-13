@@ -11,7 +11,7 @@ pub fn set_creds(username: &str, creds: &Creds) -> Result<(), anyhow::Error> {
     let keyring = Keyring::new(SERVICE_NAME, username);
     let creds_string = format!("{} {} {}", creds.username, creds.password, creds.server);
     let content = encode(creds_string);
-    if let Err(_) = keyring.set_password(&content) {
+    if keyring.set_password(&content).is_err() {
         return Err(anyhow!("Keyring failed to set password"));
     }
     Ok(())

@@ -45,7 +45,7 @@ pub fn format_destination_push(source: &Path, destination: &Path) -> anyhow::Res
         path_remove_prefix(&fp).parse_dot().unwrap().to_path_buf()
     };
 
-    return Ok(new_file_path);
+    Ok(new_file_path)
 }
 
 /// Gets the file name from the source directory, returns Restult of OsString or Error String
@@ -54,21 +54,22 @@ fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
         return Err(anyhow!("Source is a directory"));
     };
 
-    return if let Some(file_name) = source.file_name() {
+    if let Some(file_name) = source.file_name() {
         Ok(file_name.to_os_string())
     } else {
         Err(anyhow!("Source has no file name"))
-    };
+    }
 }
 
 /// Checks if a generic path is pointing to a file as opposed to a directory
 /// Directory is definied atm as ending with '.','..','/','*', though star is just multiple files, cant support it atm
 fn path_is_file(path: &Path) -> bool {
     let path_str = path.to_string_lossy();
-    if path_str.ends_with(".") || path_str.ends_with("/") || path_str.ends_with("*") {
-        return false;
+    if path_str.ends_with('.') || path_str.ends_with('/') || path_str.ends_with('*') {
+        false
+    } else {
+        true
     }
-    return true;
 }
 
 /// Removes the prefix from the path /, .., or .,
@@ -96,7 +97,7 @@ fn path_remove_prefix(mut path: &Path) -> &Path {
             path
         };
     }
-    return path;
+    path
 }
 
 /// Changes the file_name if the path but unlick the default method correctly handles paths ending with a .
@@ -105,13 +106,13 @@ fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
         if path_is_file(path) {
             p.join(file_name)
         } else {
-            p.join(path.file_name().unwrap_or(OsStr::new("")))
+            p.join(path.file_name().unwrap_or_else(|| OsStr::new("")))
                 .join(file_name)
         }
     } else {
         file_name.to_path_buf()
     };
-    return parent;
+    parent
 }
 
 #[cfg(test)]
