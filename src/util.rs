@@ -6,6 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use relative_path::RelativePathBuf;
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
@@ -397,6 +398,60 @@ mod tests {
         assert_eq!(
             format_source_pull(source).unwrap().to_str().unwrap(),
             "foo/bar/test.txt"
+        );
+    }
+
+    #[test]
+    fn default_path_dedot_join() {
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("//");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/"
+        );
+
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("//////test/");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/test"
+        );
+
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("....///..///test/");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/test"
+        );
+
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("/../");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/"
+        );
+    }
+
+    #[test]
+    fn weird_middle_path_dedot_join() {
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("/../");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/"
+        );
+
+        let base = PathBuf::from("/");
+        let end = PathBuf::from("foo//bar/");
+
+        assert_eq!(
+            join_dedot_path(base, end).unwrap().to_str().unwrap(),
+            "/foo/bar"
         );
     }
 }
