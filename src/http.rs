@@ -44,7 +44,7 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
 #[tokio::main]
 pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
@@ -54,7 +54,6 @@ pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
     let response: Result<Response, Error> = CLIENT
         .get(&request)
         .basic_auth(&creds.username, Some(&creds.password))
-        .header("OCS-APIRequest", "true")
         .send()
         .await?
         .error_for_status();
@@ -68,7 +67,7 @@ pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
 #[tokio::main]
 pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
@@ -93,7 +92,7 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
 #[tokio::main]
 pub async fn make_folder(creds: &Creds, path: &Path) -> Result<(), Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
@@ -116,7 +115,7 @@ pub async fn make_folder(creds: &Creds, path: &Path) -> Result<(), Error> {
 #[tokio::main]
 pub async fn delete(creds: &Creds, path: &Path) -> Result<(), Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
@@ -139,7 +138,7 @@ pub async fn delete(creds: &Creds, path: &Path) -> Result<(), Error> {
 #[tokio::main]
 pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,

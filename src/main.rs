@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use bytes::Bytes;
-use log::{info, error};
+use log::{info, warn, error};
 use std::path::PathBuf;
 use structopt::StructOpt;
 use url::ParseError;
@@ -254,8 +254,7 @@ fn status() {
         Ok(creds) => {
             let username: String = creds.username;
             let server: Url = creds.server;
-
-            println!("Logged in as {} for server {}", username, server);
+            println!("Logged in\nServer: '{}'\nUser: '{}'", server, username);
         }
         Err(_) => println!("Not logged in"),
     }
@@ -314,10 +313,13 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let warning = format!("Are you sure you want to delete '{}', WARNING directorys DELETE ALL FILES recursively (y/n)", path.to_string_lossy());
+    let warning = format!("Are you sure you want to delete '{}', (y/n)", path.to_string_lossy());
 
-    if !force && !util::get_confirmation(&warning)? {
-        return Ok(())
+    if !force {
+        warn!("DIRECTORIES DELETE ALL FILES AND DIRECTORIES RECURSIVELY");
+        if !util::get_confirmation(&warning)? {
+            return Ok(())
+        }
     }
 
     let creds: Creds = keyring::get_creds("username")?;
