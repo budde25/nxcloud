@@ -212,15 +212,4 @@ mod tests {
         })
         .expect_err("Username is invalid should fail");
     }
-
-    #[test]
-    #[ignore]
-    fn get_user_handle_response() {
-        let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let resp = get_user(&&Creds {
-            server: url,
-            username: String::from("test"),
-            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-        });
-    }
 }

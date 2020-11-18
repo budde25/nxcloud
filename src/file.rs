@@ -1,14 +1,21 @@
 use super::Creds;
 use base64::{decode, encode};
 use bytes::Bytes;
+use dirs;
+use lazy_static::lazy_static;
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 use url::Url;
 
-pub const DEFAULT_PATH: &str = "config.txt";
+lazy_static! {
+    pub static ref HISTORY_PATH: PathBuf =
+        dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
+    pub static ref CREDS_PATH: PathBuf = dirs::home_dir().unwrap().join(".cache/nxcloud_auth.txt");
+}
 
 pub fn read_user(path: &Path) -> Result<Creds, String> {
     let contents = fs::read_to_string(path);

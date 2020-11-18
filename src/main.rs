@@ -1,8 +1,6 @@
 use anyhow::anyhow;
 use bytes::Bytes;
-use dirs;
 use log::{error, info, warn};
-use relative_path::RelativePathBuf;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::path::PathBuf;
@@ -240,7 +238,9 @@ fn login(server: Url, username: String, password: String) -> anyhow::Result<()> 
     let creds = Creds::new(&username, &password, &server.to_string())?;
 
     http::get_user(&creds)?;
-    keyring::set_creds("username", &creds)?;
+    if keyring::set_creds("username", &creds).is_err() {
+        file::write_user(creds, &file::CREDS_PATH.to_path_buf())?;
+    }
 
     println!("Login successful");
     Ok(())
@@ -252,16 +252,19 @@ fn logout() -> anyhow::Result<()> {
         Ok(_) => println!("Logout Successful"),
         Err(_) => return Err(anyhow!("Logout Failed")),
     }
+    if file::remove_file(&file::CREDS_PATH.to_path_buf()) {
+        info!("Removed the credentials file");
+    }
     Ok(())
 }
 
 /// Prints the username and server of logged in user
 fn status() {
-    match keyring::get_creds("username") {
+    match get_creds() {
         Ok(creds) => {
             let username: String = creds.username;
             let server: Url = creds.server;
-            println!("Logged in\nServer: '{}'\nUser: '{}'", server, username);
+            println!("Logged in to Server: '{}' as User: '{}'", server, username);
         }
         Err(_) => println!("Not logged in"),
     }
@@ -271,7 +274,7 @@ fn status() {
 fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
 
-    let creds: Creds = keyring::get_creds("username")?;
+    let creds: Creds = get_creds()?;
     let data: String = http::get_list(&creds, &path)?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
@@ -307,7 +310,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
 }
 
 fn mkdir(path: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = keyring::get_creds("username")?;
+    let creds: Creds = get_creds()?;
     http::make_folder(&creds, &path)?;
     Ok(())
 }
@@ -330,7 +333,7 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
         }
     }
 
-    let creds: Creds = keyring::get_creds("username")?;
+    let creds: Creds = get_creds()?;
 
     http::delete(&creds, &path)?;
     Ok(())
@@ -338,7 +341,7 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
 
 /// Pulls a file from the server to your computer
 fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = keyring::get_creds("username")?;
+    let creds: Creds = get_creds()?;
 
     let new_dest = util::format_destination_pull(&source, &destination)?;
     let new_src = util::format_source_pull(&source)?;
@@ -352,7 +355,7 @@ fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
 
 /// Pushes a file from your computer to the server
 fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = keyring::get_creds("username")?;
+    let creds: Creds = get_creds()?;
 
     let data: Bytes = file::read_file(&source)?;
     let new_dest = util::format_destination_push(&source, &destination)?;
@@ -365,8 +368,10 @@ fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
 
 fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
     let mut rl = Editor::<()>::new();
-    let hist_path = dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
-    rl.load_history(&hist_path);
+    let history_path: PathBuf = file::HISTORY_PATH.to_path_buf();
+    if rl.load_history(&history_path).is_ok() {
+        info!("loaded prompt history");
+    }
     loop {
         let prompt = format!("[{}] >> ", current_dir.to_string_lossy());
         let readline = rl.readline(&prompt);
@@ -401,7 +406,7 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
             }
         }
     }
-    rl.save_history(&hist_path).unwrap();
+    rl.save_history(&history_path).unwrap();
     Ok(())
 }
 
@@ -413,6 +418,14 @@ fn parse_url(src: &str) -> Result<Url, ParseError> {
     }
 }
 
-fn parse_relative_path(src: &str) -> RelativePathBuf {
-    RelativePathBuf::from(src)
+fn get_creds() -> anyhow::Result<Creds> {
+    match keyring::get_creds("username") {
+        Ok(c) => Ok(c),
+        Err(_) => match file::read_user(&file::CREDS_PATH.to_path_buf()) {
+            Ok(c) => Ok(c),
+            Err(_) => Err(anyhow!(
+                "Failed to read crentials, please try logging in again"
+            )),
+        },
+    }
 }

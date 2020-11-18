@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use path_dedot::ParseDot;
-use relative_path::RelativePathBuf;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::ffi::OsStr;
