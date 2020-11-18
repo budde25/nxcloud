@@ -1,14 +1,20 @@
 use super::Creds;
 use base64::{decode, encode};
 use bytes::Bytes;
+use dirs::home_dir;
+use lazy_static::lazy_static;
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 use url::Url;
 
-pub const DEFAULT_PATH: &str = "config.txt";
+lazy_static! {
+    pub static ref HISTORY_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_history.txt");
+    pub static ref CREDS_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_auth.txt");
+}
 
 pub fn read_user(path: &Path) -> Result<Creds, String> {
     let contents = fs::read_to_string(path);
@@ -31,7 +37,7 @@ pub fn read_user(path: &Path) -> Result<Creds, String> {
         server: Url::parse(v[2]).unwrap(),
     };
 
-    return Ok(creds);
+    Ok(creds)
 }
 
 pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
@@ -40,30 +46,30 @@ pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
     let contents = format!("{} {} {}", creds.username, creds.password, creds.server);
     let encoded = encode(contents);
     let mut file = File::create(&path)?;
-    file.write(encoded.as_bytes())?;
-    return Ok(());
+    file.write_all(encoded.as_bytes())?;
+    Ok(())
 }
 
 pub fn remove_file(path: &Path) -> bool {
     if path.exists() && path.is_file() {
         fs::remove_file(path).expect("Error: Failed remove to file");
-        return true;
+        true
     } else {
-        return false;
+        false
     }
 }
 
 pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
     if !path.exists() && !path.is_dir() {
         let mut file = File::create(&path)?;
-        file.write(data)?;
+        file.write_all(data)?;
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn read_file(path: &Path) -> Result<Bytes, io::Error> {
     let contents = fs::read_to_string(path)?;
-    return Ok(Bytes::from(contents));
+    Ok(Bytes::from(contents))
 }
 
 // TESTS

@@ -1,26 +1,21 @@
 use super::Creds;
 use bytes::Bytes;
+use lazy_static::lazy_static;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::Error;
+use reqwest::Method;
 use reqwest::Response;
 use std::path::Path;
 use std::time::Duration;
-use xmltree::Element;
 
-pub fn handle_response(result: Result<String, Error>) -> Result<Element, String> {
-    match result {
-        Ok(text) => match Element::parse(text.as_bytes()) {
-            Ok(xml) => return Ok(xml),
-            Err(e) => return Err(format!("Error: Failed to parse, {}, {}", e, text)),
-        },
-        Err(_) => return Err(String::from("Error: Failed to unwrap response data")),
-    }
-}
-
-fn get_client() -> Result<Client, Error> {
-    let timeout = Duration::new(10, 0);
-    return Ok(ClientBuilder::new().timeout(timeout).build()?);
+lazy_static! {
+    static ref CLIENT: Client = {
+        ClientBuilder::new()
+            .timeout(Duration::new(10, 0))
+            .build()
+            .unwrap()
+    };
 }
 
 #[tokio::main]
@@ -32,9 +27,7 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
         user = creds.username
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .get(&request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
@@ -51,42 +44,37 @@ pub async fn get_user(creds: &Creds) -> Result<String, Error> {
 #[tokio::main]
 pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
         path = path.to_string_lossy()
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .get(&request)
         .basic_auth(&creds.username, Some(&creds.password))
-        .header("OCS-APIRequest", "true")
         .send()
         .await?
         .error_for_status();
 
     match response {
-        Ok(resp) => return Ok(resp.bytes().await?),
-        Err(e) => return Err(e),
+        Ok(resp) => Ok(resp.bytes().await?),
+        Err(e) => Err(e),
     }
 }
 
 #[tokio::main]
 pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Error> {
     let request: String = format!(
-        "{url}{ext}{user}/{path}",
+        "{url}{ext}{user}{path}",
         url = creds.server.as_str(),
         ext = "remote.php/dav/files/",
         user = creds.username,
         path = path.to_string_lossy()
     );
 
-    let client: Client = get_client()?;
-
-    let response: Result<Response, Error> = client
+    let response: Result<Response, Error> = CLIENT
         .put(&request)
         .basic_auth(&creds.username, Some(&creds.password))
         .header("OCS-APIRequest", "true")
@@ -96,7 +84,90 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
         .error_for_status();
 
     match response {
-        Ok(_) => return Ok(()),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn make_folder(creds: &Creds, path: &Path) -> Result<(), Error> {
+    let request: String = format!(
+        "{url}{ext}{user}{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path.to_string_lossy()
+    );
+
+    let response: Result<Response, Error> = CLIENT
+        .request(Method::from_bytes(b"MKCOL").unwrap(), &request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn delete(creds: &Creds, path: &Path) -> Result<(), Error> {
+    let request: String = format!(
+        "{url}{ext}{user}{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path.to_string_lossy()
+    );
+
+    let response: Result<Response, Error> = CLIENT
+        .request(Method::from_bytes(b"DELETE").unwrap(), &request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+#[tokio::main]
+pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
+    let request: String = format!(
+        "{url}{ext}{user}{path}",
+        url = creds.server.as_str(),
+        ext = "remote.php/dav/files/",
+        user = creds.username,
+        path = path.to_string_lossy()
+    );
+
+    static DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    <d:propfind xmlns:d=\"DAV:\">
+      <d:prop xmlns:oc=\"http://owncloud.org/ns\">
+        <d:getlastmodified/>
+        <d:getcontentlength/>
+        <d:getcontenttype/>
+        <oc:permissions/>
+        <d:resourcetype/>
+        <d:getetag/>
+      </d:prop>
+    </d:propfind>";
+
+    let response: Result<Response, Error> = CLIENT
+        .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
+        .basic_auth(&creds.username, Some(&creds.password))
+        .header("depth", "1")
+        .body(DATA)
+        .send()
+        .await?
+        .error_for_status();
+
+    match response {
+        Ok(resp) => return Ok(resp.text().await?),
         Err(e) => return Err(e),
     }
 }
@@ -140,17 +211,5 @@ mod tests {
             password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
         })
         .expect_err("Username is invalid should fail");
-    }
-
-    #[test]
-    #[ignore]
-    fn get_user_handle_response() {
-        let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let resp = get_user(&&Creds {
-            server: url,
-            username: String::from("test"),
-            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-        });
-        handle_response(resp).expect("Handle response should work");
     }
 }

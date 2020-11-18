@@ -14,46 +14,59 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 
 ## Usage
 
-```                                                             
-nxcloud 0.1.0
+```
+NxCloud 0.2.0
 A command line client for interacting with your NextCloud server.
 
 USAGE:
-    nxcloud <SUBCOMMAND>
+    nxcloud [FLAGS] <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+    -v, --verbose    Verbose mode (-v, -vv, -vvv)
 
 SUBCOMMANDS:
+    cd        Change directory of remote - Shell Only
     help      Prints this message or the help of the given subcommand(s)
     login     Login to your NextCloud server, please provide a app password for security
     logout    Logout of your NextCloud server
+    ls        List files and directories
+    mkdir     Make a directory
     pull      Pull a file from the server to your local machine
     push      Push a file from your local machine to the server
+    rm        Remove a file or directory, WARNING deletes files recursively
+    shell     Enter an interactive prompt
     status    Display's the account status
 ```
+
 Use `nxcloud <subcommand> help` for help with that subcommand.  
 
 ## Setup
+
 * Install [Rust](https://www.rust-lang.org/tools/install)  
 * Install libdbus-1-dev, build-essential, libssl-dev (Linux only) <br> `apt install libdbus-1-dev build-essential libssl-dev` (Debain based)
 * Clone repository  
 
 ### Compile and Run
+
 `cargo build` Will build an executable.  
 `cargo run -- <args>` Will build and run an executable.  
 `cargo doc` Will build the documentation.  
 
 ### Testing
+
 `cargo test` Will run all the unit tests except for the ignored ones, ignored because they use network and won't pass 100% reliably.  
 `cargo test -- --ignored` Will run all the tests, some may fail depending on server response time and your internet capabilities.  
 
 ## Built With
+
 [Rust](https://www.rust-lang.org/)
 
 ## License
+
 [GNU General Public License v3.0](https://github.com/budde25/nextcloud-client-cli/blob/master/LICENSE)  
 
 ## Author
+
 Ethan Budd

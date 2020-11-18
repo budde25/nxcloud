@@ -1,6 +1,6 @@
 [package]
 name = "nxcloud"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 description = "A client for interacting with your NextCloud server"
 readme = "README.md"
@@ -13,14 +13,20 @@ repository = "https://github.com/budde25/nextcloud-client-cli"
 
 [dependencies]
 
-structopt = "0.3.18"
-url = "2.1.1"
-reqwest = { version = "0.10.8", features = ["json"] }
-tokio = { version = "0.2.22", features = ["full"] }
-xmltree = "0.10.1"
-bytes = "0.5.6"
-base64 = "0.13.0"
-keyring = "0.9.0"
-path-dedot = "3.0.7"
-path-absolutize = "3.0.6"
+structopt = "0.3"
+url = "2.2"
+reqwest = { version = "0.10", features = ["json"] }
+tokio = { version = "0.2", features = ["full"] }
+xmltree = "0.10"
+bytes = "0.5"
+base64 = "0.13"
+keyring = "0.10"
+path-dedot = "3.0"
+path-absolutize = "3.0"
 anyhow = "1.0"
+lazy_static = "1.4"
+env_logger = "0.8"
+clap = "2.33"
+log = "0.4"
+rustyline = "6.3"
+dirs = "3.0"
