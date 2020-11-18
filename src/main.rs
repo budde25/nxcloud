@@ -292,7 +292,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
         } else {
             let a = full_path.clone().unwrap();
             let new_name = file.replace(&a, "").replace("%20", " ");
-            if new_name.contains(" ") {
+            if new_name.contains(' ') {
                 files.push("'".to_owned() + &new_name + "'")
             } else if !new_name.starts_with('.') || all {
                 files.push(new_name);
@@ -387,7 +387,7 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
                 } else {
                     vec!["nxcloud"]
                 };
-                let vec: Vec<&str> = line.split(" ").collect::<Vec<&str>>();
+                let vec: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
                 nxcloud.extend(vec);
                 let cli = match Opt::from_iter_safe(nxcloud) {
                     Ok(c) => c,

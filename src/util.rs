@@ -67,11 +67,7 @@ fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
 /// Directory is defined atm as ending with '.','..','/','*', though star is just multiple files, cant support it atm
 fn path_is_file(path: &Path) -> bool {
     let path_str = path.to_string_lossy();
-    if path_str.ends_with('.') || path_str.ends_with('/') || path_str.ends_with('*') {
-        false
-    } else {
-        true
-    }
+    !(path_str.ends_with('.') || path_str.ends_with('/') || path_str.ends_with('*'))
 }
 
 /// Removes the prefix from the path /, .., or .,

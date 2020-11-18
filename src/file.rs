@@ -1,7 +1,7 @@
 use super::Creds;
 use base64::{decode, encode};
 use bytes::Bytes;
-use dirs;
+use dirs::home_dir;
 use lazy_static::lazy_static;
 use std::fs;
 use std::fs::File;
@@ -12,9 +12,8 @@ use std::path::PathBuf;
 use url::Url;
 
 lazy_static! {
-    pub static ref HISTORY_PATH: PathBuf =
-        dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
-    pub static ref CREDS_PATH: PathBuf = dirs::home_dir().unwrap().join(".cache/nxcloud_auth.txt");
+    pub static ref HISTORY_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_history.txt");
+    pub static ref CREDS_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_auth.txt");
 }
 
 pub fn read_user(path: &Path) -> Result<Creds, String> {
