@@ -85,7 +85,7 @@ pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Er
 
     match response {
         Ok(_) => Ok(()),
-        Err(e) =>Err(e),
+        Err(e) => Err(e),
     }
 }
 
