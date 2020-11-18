@@ -1,12 +1,12 @@
 use anyhow::anyhow;
 use path_dedot::ParseDot;
+use relative_path::RelativePathBuf;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
-use relative_path::RelativePathBuf;
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
@@ -76,7 +76,7 @@ fn path_is_file(path: &Path) -> bool {
 }
 
 /// Removes the prefix from the path /, .., or .,
-fn path_remove_prefix(mut path: &Path) -> &Path {
+fn path_remove_prefix(mut path: &Path) -> PathBuf {
     //TODO cleanup, seems like it could be dont better
     while path.strip_prefix(".").is_ok()
         || path.strip_prefix("/").is_ok()
@@ -100,7 +100,8 @@ fn path_remove_prefix(mut path: &Path) -> &Path {
             path
         };
     }
-    path
+
+    path.components().collect()
 }
 
 /// Changes the file_name if the path but unlike the default method correctly handles paths ending with a .
@@ -129,13 +130,13 @@ pub fn get_confirmation(warning: &str) -> anyhow::Result<bool> {
             if clean_line == "y" || clean_line == "yes" {
                 return Ok(true);
             }
-        },
+        }
         Err(ReadlineError::Interrupted) => {
             println!("CTRL-C");
-        },
+        }
         Err(ReadlineError::Eof) => {
             println!("CTRL-D");
-        },
+        }
         Err(err) => {
             println!("Error: {:?}", err);
         }
@@ -151,19 +152,19 @@ pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> anyhow::Result<PathBuf> 
     if end.to_str().is_some() && end.to_str().unwrap() == ".." {
         return match end.parent() {
             Some(p) => Ok(p.to_path_buf()),
-            None => Ok(PathBuf::from("/"))
-        }
+            None => Ok(PathBuf::from("/")),
+        };
     }
 
     if end.starts_with("/") {
         match end.parse_dot() {
             Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
-            Err(_) => Ok(PathBuf::from("/"))
+            Err(_) => Ok(PathBuf::from("/")),
         }
     } else {
         match start.join(end).parse_dot() {
             Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
-            Err(_) => Ok(PathBuf::from("/"))
+            Err(_) => Ok(PathBuf::from("/")),
         }
     }
 }
@@ -406,10 +407,7 @@ mod tests {
         let base = PathBuf::from("/");
         let end = PathBuf::from("//");
 
-        assert_eq!(
-            join_dedot_path(base, end).unwrap().to_str().unwrap(),
-            "/"
-        );
+        assert_eq!(join_dedot_path(base, end).unwrap().to_str().unwrap(), "/");
 
         let base = PathBuf::from("/");
         let end = PathBuf::from("//////test/");
@@ -430,10 +428,7 @@ mod tests {
         let base = PathBuf::from("/");
         let end = PathBuf::from("/../");
 
-        assert_eq!(
-            join_dedot_path(base, end).unwrap().to_str().unwrap(),
-            "/"
-        );
+        assert_eq!(join_dedot_path(base, end).unwrap().to_str().unwrap(), "/");
     }
 
     #[test]
@@ -441,10 +436,7 @@ mod tests {
         let base = PathBuf::from("/");
         let end = PathBuf::from("/../");
 
-        assert_eq!(
-            join_dedot_path(base, end).unwrap().to_str().unwrap(),
-            "/"
-        );
+        assert_eq!(join_dedot_path(base, end).unwrap().to_str().unwrap(), "/");
 
         let base = PathBuf::from("/");
         let end = PathBuf::from("foo//bar/");

@@ -1,15 +1,15 @@
 use anyhow::anyhow;
 use bytes::Bytes;
-use log::{info, warn, error};
+use dirs;
+use log::{error, info, warn};
+use relative_path::RelativePathBuf;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 use std::path::PathBuf;
 use structopt::StructOpt;
 use url::ParseError;
 use url::Url;
 use xmltree::Element;
-use rustyline::Editor;
-use rustyline::error::ReadlineError;
-use dirs;
-use path_dedot::ParseDot;
 
 mod file;
 mod http;
@@ -149,11 +149,11 @@ enum Command {
 
     /// Enter an interactive prompt.
     #[structopt(name = "shell")]
-    Shell{},
+    Shell {},
 
     /// Change directory of remote - Shell Only.
     #[structopt(name = "cd")]
-    Cd{
+    Cd {
         /// directory to change to.
         #[structopt(parse(from_os_str))]
         path: PathBuf,
@@ -195,7 +195,6 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
-
     match cli.cmd {
         Command::Status {} => status(),
         Command::Login {
@@ -207,11 +206,17 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
         Command::Push {
             source,
             destination,
-        } => push(source, util::join_dedot_path(current_dir.clone(), destination)?)?,
+        } => push(
+            source,
+            util::join_dedot_path(current_dir.clone(), destination)?,
+        )?,
         Command::Pull {
             source,
             destination,
-        } => pull( util::join_dedot_path(current_dir.clone(), source)?, destination)?,
+        } => pull(
+            util::join_dedot_path(current_dir.clone(), source)?,
+            destination,
+        )?,
         Command::Ls { path, list, all } => {
             let fp = if path.is_none() {
                 current_dir.clone()
@@ -219,11 +224,13 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
                 util::join_dedot_path(current_dir.clone(), path.unwrap())?
             };
             ls(fp, list, all)?;
-        },
-        Command::Mkdir {path} => mkdir(util::join_dedot_path(current_dir.clone(), path)?)?,
-        Command::Rm {path, force} => rm(util::join_dedot_path(current_dir.clone(), path)?, force)?,
+        }
+        Command::Mkdir { path } => mkdir(util::join_dedot_path(current_dir.clone(), path)?)?,
+        Command::Rm { path, force } => {
+            rm(util::join_dedot_path(current_dir.clone(), path)?, force)?
+        }
         Command::Shell {} => shell(current_dir.clone())?,
-        Command::Cd{path} => current_dir = util::join_dedot_path(current_dir.clone(), path)?,
+        Command::Cd { path } => current_dir = util::join_dedot_path(current_dir.clone(), path)?,
     };
     Ok(current_dir)
 }
@@ -301,24 +308,25 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
 
 fn mkdir(path: PathBuf) -> anyhow::Result<()> {
     let creds: Creds = keyring::get_creds("username")?;
-    
     http::make_folder(&creds, &path)?;
     Ok(())
 }
 
 fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
-
     if path.to_string_lossy() == "/" {
         error!("Deleting the root is not supported");
         return Ok(());
     }
 
-    let warning = format!("Are you sure you want to delete '{}', (y/n)", path.to_string_lossy());
+    let warning = format!(
+        "Are you sure you want to delete '{}', (y/n)",
+        path.to_string_lossy()
+    );
 
     if !force {
         warn!("DIRECTORIES DELETE ALL FILES AND DIRECTORIES RECURSIVELY");
         if !util::get_confirmation(&warning)? {
-            return Ok(())
+            return Ok(());
         }
     }
 
@@ -355,13 +363,13 @@ fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
+fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
     let mut rl = Editor::<()>::new();
     let hist_path = dirs::home_dir().unwrap().join(".cache/nxcloud_history.txt");
     rl.load_history(&hist_path);
     loop {
         let prompt = format!("[{}] >> ", current_dir.to_string_lossy());
-        let readline = rl.readline( &prompt);
+        let readline = rl.readline(&prompt);
         match readline {
             Ok(line) => {
                 if line.as_str().to_lowercase() == "exit" {
@@ -369,7 +377,11 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
                 }
 
                 rl.add_history_entry(line.as_str());
-                let mut nxcloud: Vec<&str> = if line.as_str().starts_with("nxcloud") { vec![] } else { vec!["nxcloud"] };
+                let mut nxcloud: Vec<&str> = if line.as_str().starts_with("nxcloud") {
+                    vec![]
+                } else {
+                    vec!["nxcloud"]
+                };
                 let vec: Vec<&str> = line.split(" ").collect::<Vec<&str>>();
                 nxcloud.extend(vec);
                 let cli = match Opt::from_iter_safe(nxcloud) {
@@ -380,13 +392,9 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()>{
                     }
                 };
                 current_dir = run(cli, current_dir.to_path_buf())?;
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
                 break;
@@ -403,4 +411,8 @@ fn parse_url(src: &str) -> Result<Url, ParseError> {
     } else {
         Url::parse(&("https://".to_owned() + src))
     }
+}
+
+fn parse_relative_path(src: &str) -> RelativePathBuf {
+    RelativePathBuf::from(src)
 }
