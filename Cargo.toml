@@ -1,6 +1,6 @@
 [package]
 name = "nxcloud"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ethan Budd <budde25@protonmail.com>"]
 description = "A client for interacting with your NextCloud server"
 readme = "README.md"
