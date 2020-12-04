@@ -6,7 +6,7 @@ description: |
   It makes it possible to push and pull files between 
   a client and a NextCloud server without the need of a GUI.
 
-base: core18
+base: core20
 confinement: strict
 grade: stable
 
