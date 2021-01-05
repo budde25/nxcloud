@@ -45,7 +45,8 @@ Use `nxcloud <subcommand> help` for help with that subcommand.
 ## Setup
 
 * Install [Rust](https://www.rust-lang.org/tools/install)  
-* Install libdbus-1-dev, build-essential, libssl-dev (Linux only) <br> `apt install libdbus-1-dev build-essential libssl-dev` (Debain based)
+* Install libdbus-1-dev, build-essential, libssl-dev (Linux only)  
+`apt install libdbus-1-dev build-essential libssl-dev` (Debain based)
 * Clone repository  
 
 ### Compile and Run
