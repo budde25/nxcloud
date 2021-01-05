@@ -14,7 +14,7 @@ A CLI client to interact with a NextCloud server. It makes it possible to push a
 
 ## Usage
 
-```
+```none
 NxCloud 0.2.0
 A command line client for interacting with your NextCloud server.
 

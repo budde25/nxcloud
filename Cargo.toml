@@ -15,10 +15,10 @@ repository = "https://github.com/budde25/nextcloud-client-cli"
 
 structopt = "0.3"
 url = "2.2"
-reqwest = { version = "0.10", features = ["json"] }
-tokio = { version = "0.2", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.0", features = ["full"] }
 xmltree = "0.10"
-bytes = "0.5"
+bytes = "1.0"
 base64 = "0.13"
 keyring = "0.10"
 path-dedot = "3.0"
@@ -28,5 +28,5 @@ lazy_static = "1.4"
 env_logger = "0.8"
 clap = "2.33"
 log = "0.4"
-rustyline = "6.3"
+rustyline = "7.1"
 dirs = "3.0"
