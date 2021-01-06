@@ -1,65 +1,64 @@
-use super::Creds;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::{fs, fs::File};
+
+use anyhow::{anyhow, Result};
 use base64::{decode, encode};
 use bytes::Bytes;
 use dirs::home_dir;
 use lazy_static::lazy_static;
-use std::fs;
-use std::fs::File;
-use std::io;
-use std::io::Write;
-use std::path::Path;
-use std::path::PathBuf;
-use url::Url;
+
+use super::Credentials;
 
 lazy_static! {
     pub static ref HISTORY_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_history.txt");
     pub static ref CREDS_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_auth.txt");
 }
 
-pub fn read_user(path: &Path) -> Result<Creds, String> {
-    let contents = fs::read_to_string(path);
-    let res = match contents {
-        Ok(i) => i,
-        Err(_) => return Err(String::from("Failed to read file")),
-    };
-    let decoded = match &decode(res) {
-        Ok(i) => String::from_utf8_lossy(i).to_string(),
-        Err(_) => return Err(String::from("Failed to decode file")),
-    };
-    let v: Vec<&str> = decoded.split(' ').collect();
-
-    if v.len() != 3 {
-        return Err(String::from("Unexpect format"));
+impl Credentials {
+    pub fn file_read_default() -> Result<Self> {
+        Self::file_read(CREDS_PATH.as_ref())
     }
-    let creds: Creds = Creds {
-        username: String::from(v[0]),
-        password: String::from(v[1]),
-        server: Url::parse(v[2]).unwrap(),
-    };
 
-    Ok(creds)
+    fn file_read(path: &Path) -> Result<Self> {
+        let contents = fs::read_to_string(path)?;
+        let contents_decoded = decode(contents)?;
+        let decoded = String::from_utf8_lossy(&contents_decoded);
+        let v: Vec<&str> = decoded.split(' ').collect();
+
+        if v.len() != 3 {
+            return Err(anyhow!("Unexpect format"));
+        }
+
+        Ok(Self::from(v[0], v[1], v[2])?)
+    }
+
+    pub fn file_write_default(&self) -> Result<()> {
+        Self::file_write(&self, CREDS_PATH.as_ref())
+    }
+
+    fn file_write(&self, path: &Path) -> Result<()> {
+        file_delete(path)?;
+
+        let encoded = encode(self.display());
+        let mut file = File::create(&path)?;
+        file.write_all(encoded.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn file_delete_default() -> Result<()> {
+        file_delete(CREDS_PATH.as_ref())
+    }
 }
 
-pub fn write_user(creds: Creds, path: &Path) -> Result<(), io::Error> {
-    remove_file(path);
-
-    let contents = format!("{} {} {}", creds.username, creds.password, creds.server);
-    let encoded = encode(contents);
-    let mut file = File::create(&path)?;
-    file.write_all(encoded.as_bytes())?;
+pub fn file_delete(path: &Path) -> Result<()> {
+    if path.exists() && path.is_file() {
+        fs::remove_file(path)?;
+    }
     Ok(())
 }
 
-pub fn remove_file(path: &Path) -> bool {
-    if path.exists() && path.is_file() {
-        fs::remove_file(path).expect("Error: Failed remove to file");
-        true
-    } else {
-        false
-    }
-}
-
-pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
+pub fn create_file(path: &Path, data: &Bytes) -> Result<()> {
     if !path.exists() && !path.is_dir() {
         let mut file = File::create(&path)?;
         file.write_all(data)?;
@@ -67,7 +66,7 @@ pub fn create_file(path: &Path, data: &Bytes) -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn read_file(path: &Path) -> Result<Bytes, io::Error> {
+pub fn read_file(path: &Path) -> Result<Bytes> {
     let contents = fs::read_to_string(path)?;
     Ok(Bytes::from(contents))
 }
@@ -76,60 +75,48 @@ pub fn read_file(path: &Path) -> Result<Bytes, io::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use url::Url;
 
     #[test]
     fn read_user_no_file() {
         let path = Path::new("test_user_no_file.txt");
-        remove_file(path);
-        read_user(path).expect_err("File should not exist");
+        file_delete(path).unwrap();
+        Credentials::file_read(path).expect_err("File should not exist");
     }
 
     #[test]
     fn write_user_no_file() {
         let path = Path::new("test_write_user_no_file.txt");
-        write_user(
-            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
-            path,
-        )
-        .expect("File should be created");
-        assert!(remove_file(path));
+        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        creds.file_write(path).expect("File should be created");
+        file_delete(path).unwrap();
     }
 
     #[test]
     fn write_user_overwrite_file() {
         let path = Path::new("test_write_user_overwrite_file.txt");
-        write_user(
-            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
-            path,
-        )
-        .expect("File should be created");
+        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        creds.file_write(path).expect("File should be created");
+        let creds2 = Credentials::from("user2", "pass2", "cloud.example2.com").unwrap();
 
         // https should be added dynamically
-        write_user(
-            Creds::new("user2", "pass2", "cloud.example2.com").unwrap(),
-            path,
-        )
-        .expect("File should be created");
-        let resp = read_user(path).unwrap();
+        creds2.file_write(path).expect("File should be created");
+        let resp = Credentials::file_read(path).unwrap();
         assert_eq!(resp.username, String::from("user2"));
         assert_eq!(resp.password, String::from("pass2"));
         assert_eq!(
             resp.server,
             Url::parse("https://cloud.example2.com").unwrap()
         );
-        assert!(remove_file(path));
+        file_delete(path).unwrap();
     }
 
     #[test]
     fn write_and_read() {
         let path = Path::new("test_read_and_write.txt");
-        remove_file(path);
-        write_user(
-            Creds::new("user", "pass", "https://cloud.example.com").unwrap(),
-            path,
-        )
-        .expect("File should be created");
-        let resp = read_user(path).unwrap();
+        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        creds.file_write(path).expect("File should be created");
+        let resp = Credentials::file_read(path).unwrap();
         assert_eq!(resp.username, String::from("user"));
         assert_eq!(resp.password, String::from("pass"));
         assert_eq!(
@@ -143,6 +130,6 @@ mod tests {
             resp.server,
             Url::parse("https://cloud.example2.com").unwrap()
         );
-        assert!(remove_file(path));
+        file_delete(path).unwrap();
     }
 }
