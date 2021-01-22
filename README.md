@@ -9,11 +9,13 @@ NextCloud Client Command Line Interface
 [![Crates.io](https://img.shields.io/crates/v/nxcloud)](https://crates.io/crates/nxcloud)
 [![Crates.io](https://img.shields.io/crates/d/nxcloud)](https://crates.io/crates/nxcloud)
 [![nxcloud](https://snapcraft.io//nxcloud/badge.svg)](https://snapcraft.io/nxcloud)
+[![License](https://badgen.net/badge/license/MIT/blue)](LICENSE-MIT)
+[![License](https://badgen.net/badge/license/APACHE/blue)](LICENSE-APACHE)
 
 
 <!-- Table of Contents -->
 <details open="false">
-  <summary>Table of Contents</summary>
+  <summary><strong>Table of Contents</strong></summary>
   <ol>
     <li><a href="#about">About</a></li>
     <li><a href="#installation">Installation</a></li>
