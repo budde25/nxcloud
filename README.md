@@ -1,72 +1,167 @@
-# NXCloud - NextCloud Client CLI
+<!-- Title -->
+# NXCloud
 
-[![Build Status](https://travis-ci.com/budde25/nextcloud-client-cli.svg?token=h2VpZBHUrSqEk7SD3Acq&branch=master)](https://travis-ci.com/budde25/nextcloud-client-cli)
+<!-- Subtitle-->
+NextCloud Client Command Line Interface
+
+<!-- Shields -->
+<!-- TODO add GitHub actions -->
 [![Crates.io](https://img.shields.io/crates/v/nxcloud)](https://crates.io/crates/nxcloud)
 [![Crates.io](https://img.shields.io/crates/d/nxcloud)](https://crates.io/crates/nxcloud)
 [![nxcloud](https://snapcraft.io//nxcloud/badge.svg)](https://snapcraft.io/nxcloud)
 
-A CLI client to interact with a NextCloud server. It makes it possible to push and pull files between a client and a NextCloud server without the need of a GUI. This CLI is completly compatatible with Linux. It has also been built with Windows and MacOs in mind, but they are untested ATM and mileage may vary.
 
-## Install
+<!-- Table of Contents -->
+<details open="false">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about">About</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li>
+      <a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#examples">Examples</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#building-and-testing">Building and Testing</a>
+        <ul>
+          <li><a href="#setup">Setup</a></li>
+          <li><a href="#compile-and-run">Compile and Run</a></li>
+          <li><a href="#testing">Testing</a></li>
+          <li><a href="#documentation">Documentation</a></li>
+        </ul>
+    </li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#status">Status</a></li>
+    <li><a href="#built-with">Built With</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#license">License</a></li>
+  </ol>
+</details>
 
-`snap install nxcloud` reccommended.  
-`cargo install nxcloud`, requires extra packages to compile (list in setup), not reccomended.
+<!-- Info -->
+## About
 
+<!-- Image/GIF -->
+
+A CLI client to interact with a NextCloud server.  
+
+Features:  
+* Allows for pushing and pulling files on the server.
+* Creating and Deleting remote directories.
+* Listing files.
+* Interactive browsing through the shell command
+
+This application makes it possible to exchange a client and a NextCloud server without the need of a GUI. This CLI is compatible with Linux. It has also been built with Windows and MacOs in mind, they are untested at the moment and mileage may vary.
+
+<!-- Installation -->
+## Installation
+
+For a general cross platform linux a [Snap package](https://snapcraft.io/nxcloud) is available.  
+`snap install nxcloud`  
+  
+If you have rust installed you can use cargo.  
+requires a the following packages to be install:
+libdbus-1-dev, build-essential, libssl-dev (Debian names ,probably installed by default)  
+`cargo install nxcloud`   
+  
+Other packaged binary's are available in [Releases](https://github.com/budde25/nextcloud-client-cli/releases)  
+
+<!-- Usage -->
 ## Usage
 
-```
-NxCloud 0.2.0
-A command line client for interacting with your NextCloud server.
+The binary name is `nxcloud`  
 
-USAGE:
-    nxcloud [FLAGS] <SUBCOMMAND>
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-    -v, --verbose    Verbose mode (-v, -vv, -vvv)
-
-SUBCOMMANDS:
-    cd        Change directory of remote - Shell Only
-    help      Prints this message or the help of the given subcommand(s)
-    login     Login to your NextCloud server, please provide a app password for security
-    logout    Logout of your NextCloud server
-    ls        List files and directories
-    mkdir     Make a directory
-    pull      Pull a file from the server to your local machine
-    push      Push a file from your local machine to the server
-    rm        Remove a file or directory, WARNING deletes files recursively
-    shell     Enter an interactive prompt
-    status    Display's the account status
-```
-
+To display application use `nxcloud help`  
 Use `nxcloud <subcommand> help` for help with that subcommand.  
 
-## Setup
+<!-- Examples -->
+### Examples
+To start using the interacting with you're NextCloud you need to login.  
+Use an app password as opposed your account password.  
+`nxcloud login <server> <username> <password>`
+
+Listing files in a directory, support -l and -a.  
+`nxcloud ls -la`
+
+Pushing and pulling is very simple.  
+`nxcloud pull <source file path (remote)> <destination file path (local)>`  
+`nxcloud pull <source file path (local)> <destination file path (remote)>`  
+
+Entering a shell to remember current (remote) directory (Experimental).  
+Allows usage of the cd subcommand.  
+`nxcloud shell`  
+
+<!-- Building and Testing -->
+## Building and Testing
+
+This repository is a standard rust project bin structure.  
+
+<!-- Setup -->
+### Setup
 
 * Install [Rust](https://www.rust-lang.org/tools/install)  
-* Install libdbus-1-dev, build-essential, libssl-dev (Linux only) <br> `apt install libdbus-1-dev build-essential libssl-dev` (Debain based)
-* Clone repository  
+* Install libdbus-1-dev, build-essential, libssl-dev (Linux) <br> `apt install libdbus-1-dev build-essential libssl-dev` (Debian based)
+* Clone repository
 
+<!-- Compile and Run -->
 ### Compile and Run
 
-`cargo build` Will build an executable.  
-`cargo run -- <args>` Will build and run an executable.  
-`cargo doc` Will build the documentation.  
+Rust support building or running with the following commands:  
+`cargo build` Will build an executable in `/target/debug/`.  
+`cargo run -- <args>` Will build and run an executable.    
 
+<!-- Testing -->
 ### Testing
 
-`cargo test` Will run all the unit tests except for the ignored ones, ignored because they use network and won't pass 100% reliably.  
-`cargo test -- --ignored` Will run all the tests, some may fail depending on server response time and your internet capabilities.  
+Testing all standard test can be done with rust built in test framework.  
+`cargo test`
 
+Some tests cannot be completed with 100% reliability (for example they might fail without network access), this will run all ignored tests.  
+`cargo test -- --ignored`
+
+<!-- Docs -->
+### Documentation
+
+Rust built in documentation tools can be generated.  
+`cargo doc`
+
+To open with your default browser.  
+`cargo doc --open`
+
+<!-- Contributing -->
+## Contributing
+
+Contributions are completely welcome and encouraged!  
+Examples of contributing could include: 
+
+* Submitting a feature request or bug report.  
+* Asking for improved documentation.  
+* Code by creating a pull request.  
+
+Refer to [Contributing](CONTRIBUTING.md)
+
+<!-- Development Status -->
+## Status
+
+Development is still in progress with new features being planned.  
+Feel free to [Contribute](#Contributing).
+
+<!-- Technologies -->
 ## Built With
 
 [Rust](https://www.rust-lang.org/)
 
+<!-- Contact Info -->
+## Contact
+
+Created by [Ethan Budd](www.github.com/budde25)  
+Email: [budde25@protonmail.com](mailto:budde25@protonmail.com)  
+
+<!-- License -->
 ## License
 
-[GNU General Public License v3.0](https://github.com/budde25/nextcloud-client-cli/blob/master/LICENSE)  
-
-## Author
-
-Ethan Budd
+Dual-licensed under either either of the following:
+* [MIT License](LICENSE-MIT)
+* [Apache License](LICENSE-APACHE)

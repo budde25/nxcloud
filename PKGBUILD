@@ -6,7 +6,7 @@ makedepends=('rust' 'cargo')
 arch=('i686' 'x86_64' 'armv6h' 'armv7h')
 pkgdesc="A client for interacting with your NextCloud server"
 url="https://github.com/budde25/nextcloud-client-cli"
-license=('GPL-3.0-or-later')
+license=('MIT OR Apache-2.0')
 
 build() {
     return 0
