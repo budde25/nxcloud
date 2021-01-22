@@ -156,7 +156,7 @@ Feel free to [Contribute](#Contributing).
 <!-- Contact Info -->
 ## Contact
 
-Created by [Ethan Budd](www.github.com/budde25)  
+Created by [Ethan Budd](https://github.com/budde25)  
 Email: [budde25@protonmail.com](mailto:budde25@protonmail.com)  
 
 <!-- License -->
