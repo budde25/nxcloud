@@ -13,7 +13,7 @@ NextCloud Client Command Line Interface
 
 
 <!-- Table of Contents -->
-<details open="false">
+<details>
   <summary><strong>Table of Contents</strong></summary>
   <ol>
     <li><a href="#about">About</a></li>
