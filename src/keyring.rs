@@ -8,7 +8,8 @@ const SERVICE_NAME: &str = "nextcloud_client_cli";
 impl Credentials {
     pub fn write(&self) -> Result<()> {
         let keyring = Keyring::new(SERVICE_NAME, "username");
-        let credentials_string = format!("{} {} {}", self.username, self.password, self.server);
+        let credentials_string =
+            format!("{} {} {}", self.username, self.password, self.server);
         let content = encode(credentials_string);
         if keyring.set_password(&content).is_err() {
             self.file_write_default()?;
@@ -48,7 +49,8 @@ mod tests {
     #[ignore]
     fn store_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
-        let creds = Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url);
+        let creds =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url);
         creds.write().expect("Write should be possible");
         Credentials::delete().expect("Should remove creds");
     }
@@ -58,9 +60,7 @@ mod tests {
     fn set_and_read_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
         let creds = Credentials::new("test", "pass", url);
-        creds
-            .write()
-            .expect("Args are valid should return a result");
+        creds.write().expect("Args are valid should return a result");
         let creds = Credentials::read().expect("Should be creds");
         assert_eq!(creds.username, String::from("test"));
         assert_eq!(creds.password, String::from("pass"));

@@ -11,8 +11,10 @@ use lazy_static::lazy_static;
 use super::Credentials;
 
 lazy_static! {
-    pub static ref HISTORY_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_history.txt");
-    pub static ref CREDS_PATH: PathBuf = home_dir().unwrap().join(".cache/nxcloud_auth.txt");
+    pub static ref HISTORY_PATH: PathBuf =
+        home_dir().unwrap().join(".cache/nxcloud_history.txt");
+    pub static ref CREDS_PATH: PathBuf =
+        home_dir().unwrap().join(".cache/nxcloud_auth.txt");
 }
 
 impl Credentials {
@@ -87,7 +89,9 @@ mod tests {
     #[test]
     fn write_user_no_file() {
         let path = Path::new("test_write_user_no_file.txt");
-        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        let creds =
+            Credentials::from("user", "pass", "https://cloud.example.com")
+                .unwrap();
         creds.file_write(path).expect("File should be created");
         file_delete(path).unwrap();
     }
@@ -95,9 +99,12 @@ mod tests {
     #[test]
     fn write_user_overwrite_file() {
         let path = Path::new("test_write_user_overwrite_file.txt");
-        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        let creds =
+            Credentials::from("user", "pass", "https://cloud.example.com")
+                .unwrap();
         creds.file_write(path).expect("File should be created");
-        let creds2 = Credentials::from("user2", "pass2", "cloud.example2.com").unwrap();
+        let creds2 =
+            Credentials::from("user2", "pass2", "cloud.example2.com").unwrap();
 
         // https should be added dynamically
         creds2.file_write(path).expect("File should be created");
@@ -114,7 +121,9 @@ mod tests {
     #[test]
     fn write_and_read() {
         let path = Path::new("test_read_and_write.txt");
-        let creds = Credentials::from("user", "pass", "https://cloud.example.com").unwrap();
+        let creds =
+            Credentials::from("user", "pass", "https://cloud.example.com")
+                .unwrap();
         creds.file_write(path).expect("File should be created");
         let resp = Credentials::file_read(path).unwrap();
         assert_eq!(resp.username, String::from("user"));

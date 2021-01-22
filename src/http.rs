@@ -41,7 +41,10 @@ impl Http {
         let response = self
             .client
             .get(&request)
-            .basic_auth(&self.credentials.username, Some(&self.credentials.password))
+            .basic_auth(
+                &self.credentials.username,
+                Some(&self.credentials.password),
+            )
             .header("OCS-APIRequest", "true")
             .send()
             .await?
@@ -63,7 +66,10 @@ impl Http {
         let response = self
             .client
             .get(&request)
-            .basic_auth(&self.credentials.username, Some(&self.credentials.password))
+            .basic_auth(
+                &self.credentials.username,
+                Some(&self.credentials.password),
+            )
             .send()
             .await?
             .error_for_status();
@@ -83,7 +89,10 @@ impl Http {
 
         self.client
             .put(&request)
-            .basic_auth(self.credentials.username, Some(self.credentials.password))
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
             .header("OCS-APIRequest", "true")
             .body(data)
             .send()
@@ -105,7 +114,10 @@ impl Http {
 
         self.client
             .request(Method::from_bytes(b"MKCOL").unwrap(), &request)
-            .basic_auth(self.credentials.username, Some(self.credentials.password))
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
             .send()
             .await?
             .error_for_status()?;
@@ -125,7 +137,10 @@ impl Http {
 
         self.client
             .request(Method::from_bytes(b"DELETE").unwrap(), &request)
-            .basic_auth(self.credentials.username, Some(self.credentials.password))
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
             .send()
             .await?
             .error_for_status()?;
@@ -157,7 +172,10 @@ impl Http {
         let response = self
             .client
             .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
-            .basic_auth(self.credentials.username, Some(self.credentials.password))
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
             .header("depth", "1")
             .body(DATA)
             .send()
@@ -179,15 +197,18 @@ mod tests {
     #[ignore]
     fn get_user_valid() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let http = Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url).to_http();
-        http.get_user()
-            .expect("Args are valid should return a result");
+        let http =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
+                .to_http();
+        http.get_user().expect("Args are valid should return a result");
     }
 
     #[test]
     fn get_user_invalid_url() {
         let url = Url::parse("https://cloud.ebudd.i").unwrap();
-        let http = Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url).to_http();
+        let http =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
+                .to_http();
         http.get_user().expect_err("Url is invalid should fail");
     }
 
@@ -195,8 +216,12 @@ mod tests {
     #[ignore]
     fn get_user_invalid_creds() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let http = Credentials::new("test_wrong", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url).to_http();
-        http.get_user()
-            .expect_err("Username is invalid should fail");
+        let http = Credentials::new(
+            "test_wrong",
+            "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
+            url,
+        )
+        .to_http();
+        http.get_user().expect_err("Username is invalid should fail");
     }
 }

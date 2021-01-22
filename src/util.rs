@@ -3,22 +3,22 @@ use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
 use path_dedot::ParseDot;
-use rustyline::{Editor, error::ReadlineError};
+use rustyline::{error::ReadlineError, Editor};
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
     // just to through error if its a directory
     get_source_file_name(source)?;
 
-    Ok(path_remove_prefix(source)
-        .parse_dot()
-        .unwrap()
-        .to_path_buf())
+    Ok(path_remove_prefix(source).parse_dot().unwrap().to_path_buf())
 }
 
 /// Formats the destination based of the source, does not need to be cleaned up for url unlike push
 /// Ex: source data.txt and dest . then return data.txt
-pub fn format_destination_pull(source: &Path, destination: &Path) -> anyhow::Result<PathBuf> {
+pub fn format_destination_pull(
+    source: &Path,
+    destination: &Path,
+) -> anyhow::Result<PathBuf> {
     let source_file_name = get_source_file_name(source)?;
 
     let new_file_path = if path_is_file(destination) {
@@ -32,14 +32,14 @@ pub fn format_destination_pull(source: &Path, destination: &Path) -> anyhow::Res
 
 /// Formats the destination based of the source, and removes the '/', '..', or '.' prefixes
 /// Ex: source data.txt and dest . then return data.txt
-pub fn format_destination_push(source: &Path, destination: &Path) -> anyhow::Result<PathBuf> {
+pub fn format_destination_push(
+    source: &Path,
+    destination: &Path,
+) -> anyhow::Result<PathBuf> {
     let source_file_name = get_source_file_name(source)?;
 
     let new_file_path = if path_is_file(destination) {
-        path_remove_prefix(destination)
-            .parse_dot()
-            .unwrap()
-            .to_path_buf()
+        path_remove_prefix(destination).parse_dot().unwrap().to_path_buf()
     } else {
         let fp = path_with_file_name(destination, Path::new(&source_file_name));
         path_remove_prefix(&fp).parse_dot().unwrap().to_path_buf()
@@ -65,7 +65,9 @@ fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
 /// Directory is defined atm as ending with '.','..','/','*', though star is just multiple files, cant support it atm
 fn path_is_file(path: &Path) -> bool {
     let path_str = path.to_string_lossy();
-    !(path_str.ends_with('.') || path_str.ends_with('/') || path_str.ends_with('*'))
+    !(path_str.ends_with('.')
+        || path_str.ends_with('/')
+        || path_str.ends_with('*'))
 }
 
 /// Removes the prefix from the path /, .., or .,
@@ -137,7 +139,10 @@ pub fn get_confirmation(warning: &str) -> anyhow::Result<bool> {
     Ok(false)
 }
 
-pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> anyhow::Result<PathBuf> {
+pub fn join_dedot_path(
+    start: PathBuf,
+    end: PathBuf,
+) -> anyhow::Result<PathBuf> {
     // Overide dot methods cause they tend to fail
     if end.to_str().is_some() && end.to_str().unwrap() == "." {
         return Ok(start);
@@ -151,12 +156,18 @@ pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> anyhow::Result<PathBuf> 
 
     if end.starts_with("/") {
         match end.parse_dot() {
-            Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
+            Ok(p) => {
+                Ok(PathBuf::from("/")
+                    .join(path_remove_prefix(&p.to_path_buf())))
+            }
             Err(_) => Ok(PathBuf::from("/")),
         }
     } else {
         match start.join(end).parse_dot() {
-            Ok(p) => Ok(PathBuf::from("/").join(path_remove_prefix(&p.to_path_buf()))),
+            Ok(p) => {
+                Ok(PathBuf::from("/")
+                    .join(path_remove_prefix(&p.to_path_buf())))
+            }
             Err(_) => Ok(PathBuf::from("/")),
         }
     }

@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use bytes::Bytes;
+use clap::AppSettings;
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -34,13 +35,18 @@ impl Credentials {
     /// let creds = Creds::new("user", "pass", "www.example.com")
     /// let creds = Creds::new("user", "pass", "https://www.example.com")
     /// ```
-    fn from<S: AsRef<str>>(username: S, password: S, server: S) -> Result<Self, ParseError> {
+    fn from<S: AsRef<str>>(
+        username: S,
+        password: S,
+        server: S,
+    ) -> Result<Self, ParseError> {
         let server = server.as_ref();
-        let fqdn: String = if server.contains("https://") || server.contains("http://") {
-            String::from(server)
-        } else {
-            format!("https://{}", server.to_string())
-        };
+        let fqdn: String =
+            if server.contains("https://") || server.contains("http://") {
+                String::from(server)
+            } else {
+                format!("https://{}", server.to_string())
+            };
 
         let url: Url = Url::parse(&fqdn)?;
         Ok(Self {
@@ -67,7 +73,8 @@ impl Credentials {
 #[derive(StructOpt)]
 #[structopt(
     name = "NxCloud",
-    about = "A command line client for interacting with your NextCloud server."
+    about = "A command line client for interacting with your NextCloud server.",
+    global_settings = &[AppSettings::ColoredHelp, AppSettings::InferSubcommands, AppSettings::VersionlessSubcommands, AppSettings::StrictUtf8]
 )]
 struct Opt {
     /// Verbose mode (-v, -vv, -vvv)
@@ -207,23 +214,15 @@ fn main() -> anyhow::Result<()> {
 fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
     match cli.cmd {
         Command::Status {} => status(),
-        Command::Login {
-            server,
-            username,
-            password,
-        } => login(server, username, password)?,
+        Command::Login { server, username, password } => {
+            login(server, username, password)?
+        }
         Command::Logout {} => logout()?,
-        Command::Push {
-            source,
-            destination,
-        } => push(
+        Command::Push { source, destination } => push(
             source,
             util::join_dedot_path(current_dir.clone(), destination)?,
         )?,
-        Command::Pull {
-            source,
-            destination,
-        } => pull(
+        Command::Pull { source, destination } => pull(
             util::join_dedot_path(current_dir.clone(), source)?,
             destination,
         )?,
@@ -235,18 +234,26 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
             };
             ls(fp, list, all)?;
         }
-        Command::Mkdir { path } => mkdir(util::join_dedot_path(current_dir.clone(), path)?)?,
+        Command::Mkdir { path } => {
+            mkdir(util::join_dedot_path(current_dir.clone(), path)?)?
+        }
         Command::Rm { path, force } => {
             rm(util::join_dedot_path(current_dir.clone(), path)?, force)?
         }
         Command::Shell {} => shell(current_dir.clone())?,
-        Command::Cd { path } => current_dir = util::join_dedot_path(current_dir.clone(), path)?,
+        Command::Cd { path } => {
+            current_dir = util::join_dedot_path(current_dir.clone(), path)?
+        }
     };
     Ok(current_dir)
 }
 
 /// Login to the nextcloud server
-fn login(server: Url, username: String, password: String) -> anyhow::Result<()> {
+fn login(
+    server: Url,
+    username: String,
+    password: String,
+) -> anyhow::Result<()> {
     let creds = Credentials::new(username, password, server);
 
     let http = creds.clone().to_http();
@@ -273,7 +280,10 @@ fn status() {
         Ok(creds) => {
             let username: String = creds.username;
             let server: Url = creds.server;
-            println!("Logged in to Server: '{}' as User: '{}'", server, username);
+            println!(
+                "Logged in to Server: '{}' as User: '{}'",
+                server, username
+            );
         }
         Err(_) => println!("Not logged in"),
     }
@@ -309,11 +319,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
             }
         }
     }
-    let print: String = if list {
-        files.join("\n")
-    } else {
-        files.join("  ")
-    };
+    let print: String = if list { files.join("\n") } else { files.join("  ") };
     println!("{}", print);
 
     Ok(())
@@ -395,11 +401,12 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
                 }
 
                 rl.add_history_entry(line.as_str());
-                let mut nxcloud: Vec<&str> = if line.as_str().starts_with("nxcloud") {
-                    vec![]
-                } else {
-                    vec!["nxcloud"]
-                };
+                let mut nxcloud: Vec<&str> =
+                    if line.as_str().starts_with("nxcloud") {
+                        vec![]
+                    } else {
+                        vec!["nxcloud"]
+                    };
                 let vec: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
                 nxcloud.extend(vec);
                 let cli = match Opt::from_iter_safe(nxcloud) {
