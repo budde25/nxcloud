@@ -6,11 +6,10 @@ NextCloud Client Command Line Interface
 
 <!-- Shields -->
 <!-- TODO add GitHub actions -->
-[![Crates.io](https://img.shields.io/crates/v/nxcloud)](https://crates.io/crates/nxcloud)
-[![Crates.io](https://img.shields.io/crates/d/nxcloud)](https://crates.io/crates/nxcloud)
-[![nxcloud](https://snapcraft.io//nxcloud/badge.svg)](https://snapcraft.io/nxcloud)
-[![License](https://badgen.net/badge/license/MIT/blue)](LICENSE-MIT)
-[![License](https://badgen.net/badge/license/APACHE/blue)](LICENSE-APACHE)
+[![Crates.io](https://flat.badgen.net/crates/v/nxcloud)](https://crates.io/crates/nxcloud)
+[![Crates.io](https://flat.badgen.net/crates/d/nxcloud)](https://crates.io/crates/nxcloud)
+[![License](https://flat.badgen.net/badge/license/MIT/blue)](LICENSE-MIT)
+[![License](https://flat.badgen.net/badge/license/APACHE/blue)](LICENSE-APACHE)
 
 
 <!-- Table of Contents -->
