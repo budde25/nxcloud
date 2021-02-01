@@ -56,7 +56,7 @@ impl Http {
     #[tokio::main]
     pub async fn get_file(&self, path: &Path) -> Result<Bytes> {
         let request: String = format!(
-            "{url}{ext}{user}{path}",
+            "{url}{ext}{user}/{path}",
             url = self.credentials.server,
             ext = "remote.php/dav/files/",
             user = self.credentials.username,
@@ -80,7 +80,7 @@ impl Http {
     #[tokio::main]
     pub async fn send_file(self, path: &Path, data: Bytes) -> Result<()> {
         let request: String = format!(
-            "{url}{ext}{user}{path}",
+            "{url}{ext}{user}/{path}",
             url = self.credentials.server,
             ext = "remote.php/dav/files/",
             user = self.credentials.username,
@@ -105,7 +105,7 @@ impl Http {
     #[tokio::main]
     pub async fn make_folder(self, path: &Path) -> Result<()> {
         let request: String = format!(
-            "{url}{ext}{user}{path}",
+            "{url}{ext}{user}/{path}",
             url = self.credentials.server,
             ext = "remote.php/dav/files/",
             user = self.credentials.username,
@@ -128,7 +128,7 @@ impl Http {
     #[tokio::main]
     pub async fn delete(self, path: &Path) -> Result<()> {
         let request: String = format!(
-            "{url}{ext}{user}{path}",
+            "{url}{ext}{user}/{path}",
             url = self.credentials.server,
             ext = "remote.php/dav/files/",
             user = self.credentials.username,
@@ -150,7 +150,7 @@ impl Http {
     #[tokio::main]
     pub async fn get_list(self, path: &Path) -> Result<String> {
         let request: String = format!(
-            "{url}{ext}{user}{path}",
+            "{url}{ext}{user}/{path}",
             url = self.credentials.server,
             ext = "remote.php/dav/files/",
             user = self.credentials.username,
