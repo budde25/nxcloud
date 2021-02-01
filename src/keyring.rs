@@ -1,79 +1,67 @@
-use super::Creds;
-use anyhow::anyhow;
+use super::Credentials;
+use anyhow::Result;
 use base64::{decode, encode};
 use keyring::Keyring;
-use std::error::Error;
-use url::Url;
 
 const SERVICE_NAME: &str = "nextcloud_client_cli";
 
-pub fn set_creds(username: &str, creds: &Creds) -> Result<(), anyhow::Error> {
-    let keyring = Keyring::new(SERVICE_NAME, username);
-    let creds_string = format!("{} {} {}", creds.username, creds.password, creds.server);
-    let content = encode(creds_string);
-    if keyring.set_password(&content).is_err() {
-        return Err(anyhow!("Keyring failed to set password"));
+impl Credentials {
+    pub fn write(&self) -> Result<()> {
+        let keyring = Keyring::new(SERVICE_NAME, "username");
+        let credentials_string =
+            format!("{} {} {}", self.username, self.password, self.server);
+        let content = encode(credentials_string);
+        if keyring.set_password(&content).is_err() {
+            self.file_write_default()?;
+        }
+
+        Ok(())
     }
-    Ok(())
-}
 
-pub fn get_creds(username: &str) -> Result<Creds, anyhow::Error> {
-    let keyring = Keyring::new(SERVICE_NAME, username);
-    if let Ok(content) = keyring.get_password() {
-        let data = String::from_utf8_lossy(&decode(content)?).to_string();
+    pub fn read() -> Result<Self> {
+        let keyring = Keyring::new(SERVICE_NAME, "username");
+        if let Ok(content) = keyring.get_password() {
+            let data = String::from_utf8_lossy(&decode(content)?).to_string();
 
-        let v: Vec<&str> = data.split(' ').collect();
+            let v: Vec<&str> = data.split(' ').collect();
 
-        Ok(Creds {
-            username: String::from(v[0]),
-            password: String::from(v[1]),
-            server: Url::parse(v[2])?,
-        })
-    } else {
-        Err(anyhow!("Keyring failed to retrive password"))
+            Ok(Self::from(v[0], v[1], v[2])?)
+        } else {
+            Credentials::file_read_default()
+        }
     }
-}
 
-pub fn delete_creds(username: &str) -> Result<(), Box<dyn Error>> {
-    let keyring = Keyring::new(SERVICE_NAME, username);
-    keyring.delete_password()?;
-    Ok(())
+    pub fn delete() -> Result<()> {
+        let keyring = Keyring::new(SERVICE_NAME, "username");
+        if keyring.delete_password().is_err() {
+            Credentials::file_delete_default()?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use url::Url;
 
     #[test]
     #[ignore]
     fn store_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
-        set_creds(
-            "test",
-            &Creds {
-                server: url,
-                username: String::from("test"),
-                password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-            },
-        )
-        .expect("Args are valid should return a result");
-        delete_creds("test").expect("Should remove creds");
+        let creds =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url);
+        creds.write().expect("Write should be possible");
+        Credentials::delete().expect("Should remove creds");
     }
 
     #[test]
     #[ignore]
     fn set_and_read_creds() {
         let url = Url::parse("https://cloud.example.com").unwrap();
-        set_creds(
-            "test1",
-            &Creds {
-                server: url,
-                username: String::from("test"),
-                password: String::from("pass"),
-            },
-        )
-        .expect("Args are valid should return a result");
-        let creds = get_creds("test1").expect("Should be creds");
+        let creds = Credentials::new("test", "pass", url);
+        creds.write().expect("Args are valid should return a result");
+        let creds = Credentials::read().expect("Should be creds");
         assert_eq!(creds.username, String::from("test"));
         assert_eq!(creds.password, String::from("pass"));
         assert_eq!(

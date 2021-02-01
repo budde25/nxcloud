@@ -1,151 +1,163 @@
-use super::Creds;
-use bytes::Bytes;
-use lazy_static::lazy_static;
-use reqwest::Client;
-use reqwest::ClientBuilder;
-use reqwest::Error;
-use reqwest::Method;
-use reqwest::Response;
 use std::path::Path;
 use std::time::Duration;
 
-lazy_static! {
-    static ref CLIENT: Client = {
-        ClientBuilder::new()
-            .timeout(Duration::new(10, 0))
-            .build()
-            .unwrap()
-    };
+use anyhow::Result;
+use bytes::Bytes;
+use reqwest::{Client, ClientBuilder, Method};
+
+use super::Credentials;
+
+pub struct Http {
+    credentials: Credentials,
+    client: Client,
 }
 
-#[tokio::main]
-pub async fn get_user(creds: &Creds) -> Result<String, Error> {
-    let request: String = format!(
-        "{url}{ext}{user}",
-        url = creds.server.as_str(),
-        ext = "ocs/v1.php/cloud/users/",
-        user = creds.username
-    );
-
-    let response: Result<Response, Error> = CLIENT
-        .get(&request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .header("OCS-APIRequest", "true")
-        .send()
-        .await?
-        .error_for_status();
-
-    match response {
-        Ok(resp) => return Ok(resp.text().await?),
-        Err(e) => return Err(e),
+impl Credentials {
+    pub fn to_http(self) -> Http {
+        Http::from(self)
     }
 }
 
-#[tokio::main]
-pub async fn get_file(creds: &Creds, path: &Path) -> Result<Bytes, Error> {
-    let request: String = format!(
-        "{url}{ext}{user}{path}",
-        url = creds.server.as_str(),
-        ext = "remote.php/dav/files/",
-        user = creds.username,
-        path = path.to_string_lossy()
-    );
-
-    let response: Result<Response, Error> = CLIENT
-        .get(&request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .send()
-        .await?
-        .error_for_status();
-
-    match response {
-        Ok(resp) => Ok(resp.bytes().await?),
-        Err(e) => Err(e),
+impl Http {
+    pub fn from(credentials: Credentials) -> Self {
+        Self {
+            credentials,
+            client: ClientBuilder::new()
+                .timeout(Duration::new(10, 0))
+                .build()
+                .unwrap(),
+        }
     }
-}
 
-#[tokio::main]
-pub async fn send_file(creds: &Creds, path: &Path, data: Bytes) -> Result<(), Error> {
-    let request: String = format!(
-        "{url}{ext}{user}{path}",
-        url = creds.server.as_str(),
-        ext = "remote.php/dav/files/",
-        user = creds.username,
-        path = path.to_string_lossy()
-    );
+    #[tokio::main]
+    pub async fn get_user(&self) -> Result<String> {
+        let request: String = format!(
+            "{url}{ext}{user}",
+            url = self.credentials.server,
+            ext = "ocs/v1.php/cloud/users/",
+            user = self.credentials.username
+        );
 
-    let response: Result<Response, Error> = CLIENT
-        .put(&request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .header("OCS-APIRequest", "true")
-        .body(data)
-        .send()
-        .await?
-        .error_for_status();
+        let response = self
+            .client
+            .get(&request)
+            .basic_auth(
+                &self.credentials.username,
+                Some(&self.credentials.password),
+            )
+            .header("OCS-APIRequest", "true")
+            .send()
+            .await?
+            .error_for_status();
 
-    match response {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
+        Ok(response?.text().await?)
     }
-}
 
-#[tokio::main]
-pub async fn make_folder(creds: &Creds, path: &Path) -> Result<(), Error> {
-    let request: String = format!(
-        "{url}{ext}{user}{path}",
-        url = creds.server.as_str(),
-        ext = "remote.php/dav/files/",
-        user = creds.username,
-        path = path.to_string_lossy()
-    );
+    #[tokio::main]
+    pub async fn get_file(&self, path: &Path) -> Result<Bytes> {
+        let request: String = format!(
+            "{url}{ext}{user}/{path}",
+            url = self.credentials.server,
+            ext = "remote.php/dav/files/",
+            user = self.credentials.username,
+            path = path.to_string_lossy()
+        );
 
-    let response: Result<Response, Error> = CLIENT
-        .request(Method::from_bytes(b"MKCOL").unwrap(), &request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .send()
-        .await?
-        .error_for_status();
+        let response = self
+            .client
+            .get(&request)
+            .basic_auth(
+                &self.credentials.username,
+                Some(&self.credentials.password),
+            )
+            .send()
+            .await?
+            .error_for_status();
 
-    match response {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
+        Ok(response?.bytes().await?)
     }
-}
 
-#[tokio::main]
-pub async fn delete(creds: &Creds, path: &Path) -> Result<(), Error> {
-    let request: String = format!(
-        "{url}{ext}{user}{path}",
-        url = creds.server.as_str(),
-        ext = "remote.php/dav/files/",
-        user = creds.username,
-        path = path.to_string_lossy()
-    );
+    #[tokio::main]
+    pub async fn send_file(self, path: &Path, data: Bytes) -> Result<()> {
+        let request: String = format!(
+            "{url}{ext}{user}/{path}",
+            url = self.credentials.server,
+            ext = "remote.php/dav/files/",
+            user = self.credentials.username,
+            path = path.to_string_lossy()
+        );
 
-    let response: Result<Response, Error> = CLIENT
-        .request(Method::from_bytes(b"DELETE").unwrap(), &request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .send()
-        .await?
-        .error_for_status();
+        self.client
+            .put(&request)
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
+            .header("OCS-APIRequest", "true")
+            .body(data)
+            .send()
+            .await?
+            .error_for_status()?;
 
-    match response {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
+        Ok(())
     }
-}
 
-#[tokio::main]
-pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
-    let request: String = format!(
-        "{url}{ext}{user}{path}",
-        url = creds.server.as_str(),
-        ext = "remote.php/dav/files/",
-        user = creds.username,
-        path = path.to_string_lossy()
-    );
+    #[tokio::main]
+    pub async fn make_folder(self, path: &Path) -> Result<()> {
+        let request: String = format!(
+            "{url}{ext}{user}/{path}",
+            url = self.credentials.server,
+            ext = "remote.php/dav/files/",
+            user = self.credentials.username,
+            path = path.to_string_lossy()
+        );
 
-    static DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        self.client
+            .request(Method::from_bytes(b"MKCOL").unwrap(), &request)
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(())
+    }
+
+    #[tokio::main]
+    pub async fn delete(self, path: &Path) -> Result<()> {
+        let request: String = format!(
+            "{url}{ext}{user}/{path}",
+            url = self.credentials.server,
+            ext = "remote.php/dav/files/",
+            user = self.credentials.username,
+            path = path.to_string_lossy()
+        );
+
+        self.client
+            .request(Method::from_bytes(b"DELETE").unwrap(), &request)
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(())
+    }
+    #[tokio::main]
+    pub async fn get_list(self, path: &Path) -> Result<String> {
+        let request: String = format!(
+            "{url}{ext}{user}/{path}",
+            url = self.credentials.server,
+            ext = "remote.php/dav/files/",
+            user = self.credentials.username,
+            path = path.to_string_lossy()
+        );
+
+        static DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <d:propfind xmlns:d=\"DAV:\">
       <d:prop xmlns:oc=\"http://owncloud.org/ns\">
         <d:getlastmodified/>
@@ -157,59 +169,59 @@ pub async fn get_list(creds: &Creds, path: &Path) -> Result<String, Error> {
       </d:prop>
     </d:propfind>";
 
-    let response: Result<Response, Error> = CLIENT
-        .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
-        .basic_auth(&creds.username, Some(&creds.password))
-        .header("depth", "1")
-        .body(DATA)
-        .send()
-        .await?
-        .error_for_status();
+        let response = self
+            .client
+            .request(Method::from_bytes(b"PROPFIND").unwrap(), &request)
+            .basic_auth(
+                self.credentials.username,
+                Some(self.credentials.password),
+            )
+            .header("depth", "1")
+            .body(DATA)
+            .send()
+            .await?
+            .error_for_status();
 
-    match response {
-        Ok(resp) => return Ok(resp.text().await?),
-        Err(e) => return Err(e),
+        Ok(response?.text().await?)
     }
 }
 
 // TESTS
 #[cfg(test)]
 mod tests {
-    use super::*;
     use url::Url;
+
+    use super::*;
 
     #[test]
     #[ignore]
     fn get_user_valid() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        get_user(&Creds {
-            server: url,
-            username: String::from("test"),
-            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-        })
-        .expect("Args are valid should return a result");
+        let http =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
+                .to_http();
+        http.get_user().expect("Args are valid should return a result");
     }
 
     #[test]
     fn get_user_invalid_url() {
         let url = Url::parse("https://cloud.ebudd.i").unwrap();
-        get_user(&Creds {
-            server: url,
-            username: String::from("test"),
-            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-        })
-        .expect_err("Url is invalid should fail");
+        let http =
+            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
+                .to_http();
+        http.get_user().expect_err("Url is invalid should fail");
     }
 
     #[test]
     #[ignore]
     fn get_user_invalid_creds() {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        get_user(&Creds {
-            server: url,
-            username: String::from("test_wrong"),
-            password: String::from("KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS"),
-        })
-        .expect_err("Username is invalid should fail");
+        let http = Credentials::new(
+            "test_wrong",
+            "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
+            url,
+        )
+        .to_http();
+        http.get_user().expect_err("Username is invalid should fail");
     }
 }

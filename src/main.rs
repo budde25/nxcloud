@@ -1,12 +1,12 @@
 use anyhow::anyhow;
 use bytes::Bytes;
+use clap::AppSettings;
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::path::PathBuf;
 use structopt::StructOpt;
-use url::ParseError;
-use url::Url;
+use url::{ParseError, Url};
 use xmltree::Element;
 
 mod file;
@@ -15,14 +15,14 @@ mod keyring;
 mod util;
 
 //// Structure for storing user credentials
-#[derive(Debug)]
-pub struct Creds {
+#[derive(Debug, Clone)]
+pub struct Credentials {
     pub username: String,
     pub password: String,
     pub server: Url,
 }
 
-impl Creds {
+impl Credentials {
     /// Returns a Result with Creds object or ParseError if an invalid url is supplied
     ///
     /// # Arguments
@@ -35,19 +35,37 @@ impl Creds {
     /// let creds = Creds::new("user", "pass", "www.example.com")
     /// let creds = Creds::new("user", "pass", "https://www.example.com")
     /// ```
-    fn new(username: &str, password: &str, server: &str) -> Result<Creds, ParseError> {
-        let fqdn: String = if server.contains("https://") || server.contains("http://") {
-            String::from(server)
-        } else {
-            format!("https://{}", server.to_string())
-        };
+    fn from<S: AsRef<str>>(
+        username: S,
+        password: S,
+        server: S,
+    ) -> Result<Self, ParseError> {
+        let server = server.as_ref();
+        let fqdn: String =
+            if server.contains("https://") || server.contains("http://") {
+                String::from(server)
+            } else {
+                format!("https://{}", server.to_string())
+            };
 
         let url: Url = Url::parse(&fqdn)?;
-        Ok(Creds {
-            username: String::from(username),
-            password: String::from(password),
+        Ok(Self {
+            username: username.as_ref().to_string(),
+            password: password.as_ref().to_string(),
             server: url,
         })
+    }
+
+    fn new<S: AsRef<str>>(username: S, password: S, server: Url) -> Self {
+        Self {
+            username: username.as_ref().to_string(),
+            password: password.as_ref().to_string(),
+            server,
+        }
+    }
+
+    fn display(&self) -> String {
+        format!("{} {} {}", self.username, self.password, self.server)
     }
 }
 
@@ -55,7 +73,8 @@ impl Creds {
 #[derive(StructOpt)]
 #[structopt(
     name = "NxCloud",
-    about = "A command line client for interacting with your NextCloud server."
+    about = "A command line client for interacting with your NextCloud server.",
+    global_settings = &[AppSettings::ColoredHelp, AppSettings::InferSubcommands, AppSettings::VersionlessSubcommands, AppSettings::StrictUtf8]
 )]
 struct Opt {
     /// Verbose mode (-v, -vv, -vvv)
@@ -195,23 +214,15 @@ fn main() -> anyhow::Result<()> {
 fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
     match cli.cmd {
         Command::Status {} => status(),
-        Command::Login {
-            server,
-            username,
-            password,
-        } => login(server, username, password)?,
+        Command::Login { server, username, password } => {
+            login(server, username, password)?
+        }
         Command::Logout {} => logout()?,
-        Command::Push {
-            source,
-            destination,
-        } => push(
+        Command::Push { source, destination } => push(
             source,
             util::join_dedot_path(current_dir.clone(), destination)?,
         )?,
-        Command::Pull {
-            source,
-            destination,
-        } => pull(
+        Command::Pull { source, destination } => pull(
             util::join_dedot_path(current_dir.clone(), source)?,
             destination,
         )?,
@@ -223,24 +234,31 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
             };
             ls(fp, list, all)?;
         }
-        Command::Mkdir { path } => mkdir(util::join_dedot_path(current_dir.clone(), path)?)?,
+        Command::Mkdir { path } => {
+            mkdir(util::join_dedot_path(current_dir.clone(), path)?)?
+        }
         Command::Rm { path, force } => {
             rm(util::join_dedot_path(current_dir.clone(), path)?, force)?
         }
         Command::Shell {} => shell(current_dir.clone())?,
-        Command::Cd { path } => current_dir = util::join_dedot_path(current_dir.clone(), path)?,
+        Command::Cd { path } => {
+            current_dir = util::join_dedot_path(current_dir.clone(), path)?
+        }
     };
     Ok(current_dir)
 }
 
 /// Login to the nextcloud server
-fn login(server: Url, username: String, password: String) -> anyhow::Result<()> {
-    let creds = Creds::new(&username, &password, &server.to_string())?;
+fn login(
+    server: Url,
+    username: String,
+    password: String,
+) -> anyhow::Result<()> {
+    let creds = Credentials::new(username, password, server);
 
-    http::get_user(&creds)?;
-    if keyring::set_creds("username", &creds).is_err() {
-        file::write_user(creds, &file::CREDS_PATH.to_path_buf())?;
-    }
+    let http = creds.clone().to_http();
+    http.get_user()?;
+    creds.write()?;
 
     println!("Login successful");
     Ok(())
@@ -248,23 +266,24 @@ fn login(server: Url, username: String, password: String) -> anyhow::Result<()> 
 
 /// Logout of the nextcloud server
 fn logout() -> anyhow::Result<()> {
-    match keyring::delete_creds("username") {
+    match Credentials::delete() {
         Ok(_) => println!("Logout Successful"),
         Err(_) => return Err(anyhow!("Logout Failed")),
     }
-    if file::remove_file(&file::CREDS_PATH.to_path_buf()) {
-        info!("Removed the credentials file");
-    }
+
     Ok(())
 }
 
 /// Prints the username and server of logged in user
 fn status() {
-    match get_creds() {
+    match Credentials::read() {
         Ok(creds) => {
             let username: String = creds.username;
             let server: Url = creds.server;
-            println!("Logged in to Server: '{}' as User: '{}'", server, username);
+            println!(
+                "Logged in to Server: '{}' as User: '{}'",
+                server, username
+            );
         }
         Err(_) => println!("Not logged in"),
     }
@@ -274,8 +293,9 @@ fn status() {
 fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
 
-    let creds: Creds = get_creds()?;
-    let data: String = http::get_list(&creds, &path)?;
+    let creds = Credentials::read()?;
+    let http = creds.to_http();
+    let data: String = http.get_list(&path)?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
@@ -299,19 +319,15 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
             }
         }
     }
-    let print: String = if list {
-        files.join("\n")
-    } else {
-        files.join("  ")
-    };
+    let print: String = if list { files.join("\n") } else { files.join("  ") };
     println!("{}", print);
 
     Ok(())
 }
 
 fn mkdir(path: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = get_creds()?;
-    http::make_folder(&creds, &path)?;
+    let creds = Credentials::read()?;
+    creds.to_http().make_folder(&path)?;
     Ok(())
 }
 
@@ -333,20 +349,22 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
         }
     }
 
-    let creds: Creds = get_creds()?;
+    let creds = Credentials::read()?;
 
-    http::delete(&creds, &path)?;
+    let http = creds.to_http();
+    http.delete(&path)?;
     Ok(())
 }
 
 /// Pulls a file from the server to your computer
 fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = get_creds()?;
+    let creds = Credentials::read()?;
+    let http = creds.to_http();
 
     let new_dest = util::format_destination_pull(&source, &destination)?;
     let new_src = util::format_source_pull(&source)?;
 
-    let data: Bytes = http::get_file(&creds, &new_src)?;
+    let data: Bytes = http.get_file(&new_src)?;
     file::create_file(&new_dest, &data)?;
 
     println!("Pulled {:?}, {:?}", new_src, new_dest);
@@ -355,12 +373,13 @@ fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
 
 /// Pushes a file from your computer to the server
 fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
-    let creds: Creds = get_creds()?;
+    let creds = Credentials::read()?;
+    let http = creds.to_http();
 
     let data: Bytes = file::read_file(&source)?;
     let new_dest = util::format_destination_push(&source, &destination)?;
 
-    http::send_file(&creds, &new_dest, data)?;
+    http.send_file(&new_dest, data)?;
 
     println!("Push {:?}, {:?}", source, new_dest);
     Ok(())
@@ -382,11 +401,12 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
                 }
 
                 rl.add_history_entry(line.as_str());
-                let mut nxcloud: Vec<&str> = if line.as_str().starts_with("nxcloud") {
-                    vec![]
-                } else {
-                    vec!["nxcloud"]
-                };
+                let mut nxcloud: Vec<&str> =
+                    if line.as_str().starts_with("nxcloud") {
+                        vec![]
+                    } else {
+                        vec!["nxcloud"]
+                    };
                 let vec: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
                 nxcloud.extend(vec);
                 let cli = match Opt::from_iter_safe(nxcloud) {
@@ -415,17 +435,5 @@ fn parse_url(src: &str) -> Result<Url, ParseError> {
         Url::parse(src)
     } else {
         Url::parse(&("https://".to_owned() + src))
-    }
-}
-
-fn get_creds() -> anyhow::Result<Creds> {
-    match keyring::get_creds("username") {
-        Ok(c) => Ok(c),
-        Err(_) => match file::read_user(&file::CREDS_PATH.to_path_buf()) {
-            Ok(c) => Ok(c),
-            Err(_) => Err(anyhow!(
-                "Failed to read crentials, please try logging in again"
-            )),
-        },
     }
 }
