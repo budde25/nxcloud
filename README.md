@@ -88,7 +88,7 @@ Listing files in a directory, support -l and -a.
 
 Pushing and pulling is very simple.  
 `nxcloud pull <source file path (remote)> <destination file path (local)>`  
-`nxcloud pull <source file path (local)> <destination file path (remote)>`  
+`nxcloud push <source file path (local)> <destination file path (remote)>`  
 
 Entering a shell to remember current (remote) directory (Experimental).  
 Allows usage of the cd subcommand.  
