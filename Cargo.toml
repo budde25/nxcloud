@@ -11,8 +11,14 @@ categories = ["command-line-utilities"]
 homepage = "https://github.com/budde25/nextcloud-client-cli"
 repository = "https://github.com/budde25/nextcloud-client-cli"
 
-[dependencies]
+[features]
 
+default = ["secure-password"]
+
+# allows use of the keyring package to store passwords in the users keyring
+secure-password = ["keyring"]
+
+[dependencies]
 structopt = "0.3"
 url = "2.2"
 reqwest = { version = "0.11", features = ["json"] }
@@ -20,7 +26,7 @@ tokio = { version = "1.1", features = ["full"] }
 xmltree = "0.10"
 bytes = "1.0"
 base64 = "0.13"
-keyring = "0.10"
+keyring = { version = "0.10", optional = true }
 path-dedot = "3.0"
 path-absolutize = "3.0"
 anyhow = "1.0"
@@ -30,3 +36,4 @@ clap = "2.33"
 log = "0.4"
 rustyline = "7.1"
 dirs = "3.0"
+cfg-if = "1.0"
