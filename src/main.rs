@@ -256,7 +256,7 @@ fn login(
 ) -> anyhow::Result<()> {
     let creds = Credentials::new(username, password, server);
 
-    let http = creds.clone().to_http();
+    let http = creds.clone().into_http();
     http.get_user()?;
     creds.write()?;
 
@@ -294,7 +294,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     // TODO fix this garbadge lol
 
     let creds = Credentials::read()?;
-    let http = creds.to_http();
+    let http = creds.into_http();
     let data: String = http.get_list(&path)?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
@@ -327,7 +327,7 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
 
 fn mkdir(path: PathBuf) -> anyhow::Result<()> {
     let creds = Credentials::read()?;
-    creds.to_http().make_folder(&path)?;
+    creds.into_http().make_folder(&path)?;
     Ok(())
 }
 
@@ -351,7 +351,7 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
 
     let creds = Credentials::read()?;
 
-    let http = creds.to_http();
+    let http = creds.into_http();
     http.delete(&path)?;
     Ok(())
 }
@@ -359,7 +359,7 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
 /// Pulls a file from the server to your computer
 fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     let creds = Credentials::read()?;
-    let http = creds.to_http();
+    let http = creds.into_http();
 
     let new_dest = util::format_destination_pull(&source, &destination)?;
     let new_src = util::format_source_pull(&source)?;
@@ -374,7 +374,7 @@ fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
 /// Pushes a file from your computer to the server
 fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
     let creds = Credentials::read()?;
-    let http = creds.to_http();
+    let http = creds.into_http();
 
     let data: Bytes = file::read_file(&source)?;
     let new_dest = util::format_destination_push(&source, &destination)?;

@@ -13,7 +13,7 @@ pub struct Http {
 }
 
 impl Credentials {
-    pub fn to_http(self) -> Http {
+    pub fn into_http(self) -> Http {
         Http::from(self)
     }
 }
@@ -199,7 +199,7 @@ mod tests {
         let url = Url::parse("https://cloud.ebudd.io").unwrap();
         let http =
             Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
-                .to_http();
+                .into_http();
         http.get_user().expect("Args are valid should return a result");
     }
 
@@ -208,7 +208,7 @@ mod tests {
         let url = Url::parse("https://cloud.ebudd.i").unwrap();
         let http =
             Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
-                .to_http();
+                .into_http();
         http.get_user().expect_err("Url is invalid should fail");
     }
 
@@ -221,7 +221,7 @@ mod tests {
             "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
             url,
         )
-        .to_http();
+        .into_http();
         http.get_user().expect_err("Username is invalid should fail");
     }
 }
