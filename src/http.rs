@@ -157,7 +157,7 @@ impl Http {
             path = path.to_string_lossy()
         );
 
-        static DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        const DATA: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <d:propfind xmlns:d=\"DAV:\">
       <d:prop xmlns:oc=\"http://owncloud.org/ns\">
         <d:getlastmodified/>

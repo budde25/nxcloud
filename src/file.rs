@@ -5,21 +5,22 @@ use std::{fs, fs::File};
 use anyhow::{anyhow, Result};
 use base64::{decode, encode};
 use bytes::Bytes;
-use dirs::home_dir;
-use lazy_static::lazy_static;
+use dirs_next::home_dir;
+use once_cell::unsync::Lazy;
 
 use super::Credentials;
 
-lazy_static! {
-    pub static ref HISTORY_PATH: PathBuf =
-        home_dir().unwrap().join(".cache/nxcloud_history.txt");
-    pub static ref CREDS_PATH: PathBuf =
-        home_dir().unwrap().join(".cache/nxcloud_auth.txt");
-}
+pub const HISTORY_PATH: Lazy<PathBuf> = Lazy::new(|| {
+    home_dir().unwrap().join(".cache/nxcloud_history.txt")
+});
+
+const CREDENTIALS_PATH: Lazy<PathBuf> = Lazy::new(|| {
+    home_dir().unwrap().join(".cache/nxcloud_auth.txt")
+});
 
 impl Credentials {
     pub fn file_read_default() -> Result<Self> {
-        Self::file_read(CREDS_PATH.as_ref())
+        Self::file_read(&CREDENTIALS_PATH)
     }
 
     fn file_read(path: &Path) -> Result<Self> {
@@ -29,14 +30,14 @@ impl Credentials {
         let v: Vec<&str> = decoded.split(' ').collect();
 
         if v.len() != 3 {
-            return Err(anyhow!("Unexpect format"));
+            return Err(anyhow!("Unexpected format"));
         }
 
         Ok(Self::from(v[0], v[1], v[2])?)
     }
 
     pub fn file_write_default(&self) -> Result<()> {
-        Self::file_write(&self, CREDS_PATH.as_ref())
+        Self::file_write(&self, &CREDENTIALS_PATH)
     }
 
     fn file_write(&self, path: &Path) -> Result<()> {
@@ -49,7 +50,7 @@ impl Credentials {
     }
 
     pub fn file_delete_default() -> Result<()> {
-        file_delete(CREDS_PATH.as_ref())
+        file_delete(&CREDENTIALS_PATH)
     }
 }
 
