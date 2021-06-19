@@ -189,8 +189,6 @@ impl Http {
 // TESTS
 #[cfg(test)]
 mod tests {
-    use url::Url;
-
     use super::*;
 
     #[test]

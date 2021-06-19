@@ -2,19 +2,19 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{fs, fs::File};
 
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use base64::{decode, encode};
 use bytes::Bytes;
-use dirs_next::home_dir;
-use once_cell::unsync::Lazy;
+use dirs_next::cache_dir;
+use once_cell::sync::Lazy;
 
 use super::Credentials;
 
-pub const HISTORY_PATH: Lazy<PathBuf> =
-    Lazy::new(|| home_dir().unwrap().join(".cache/nxcloud_history.txt"));
+pub static HISTORY_PATH: Lazy<PathBuf> =
+    Lazy::new(|| cache_dir().unwrap().join("nxcloud_history.txt"));
 
-const CREDENTIALS_PATH: Lazy<PathBuf> =
-    Lazy::new(|| home_dir().unwrap().join(".cache/nxcloud_auth.txt"));
+static CREDENTIALS_PATH: Lazy<PathBuf> =
+    Lazy::new(|| cache_dir().unwrap().join(".nxcloud_auth.txt"));
 
 impl Credentials {
     pub fn file_read_default() -> Result<Self> {
@@ -28,10 +28,10 @@ impl Credentials {
         let v: Vec<&str> = decoded.split(' ').collect();
 
         if v.len() != 3 {
-            return Err(anyhow!("Unexpected format"));
+            bail!("Unexpected credential format");
         }
 
-        Ok(Self::parse(v[0], v[1], v[2])?)
+        Self::parse(v[0], v[1], v[2])
     }
 
     pub fn file_write_default(&self) -> Result<()> {

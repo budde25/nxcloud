@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use anyhow::bail;
 use bytes::Bytes;
 use clap::AppSettings;
 use log::{error, info, warn};
@@ -114,7 +113,7 @@ impl FromStr for Server {
             let fqdn = format!("{}{}", "https://", s);
             Url::parse(&fqdn)?
         };
-        Ok(Self::new(u)?)
+        Self::new(u)
     }
 }
 
