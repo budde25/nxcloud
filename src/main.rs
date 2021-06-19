@@ -23,17 +23,17 @@ pub struct Credentials {
 }
 
 impl Credentials {
-    /// Returns a Result with Creds object or ParseError if an invalid url is supplied
+    /// Returns a Result with Credentials object or ParseError if an invalid url is supplied
     ///
     /// # Arguments
-    /// `username` - String slice that represent a nextcloud login username  
-    /// `password` - Sring slice that represents a nextcloud app password  
-    /// `server` - String slice that represents a nextcloud server url, http or https can be omitted, https is the default
+    /// `username` - String slice that represent a NextCloud login username  
+    /// `password` - String slice that represents a NextCloud app password  
+    /// `server` - String slice that represents a NextCloud server url, http or https can be omitted, https is the default
     ///
     /// # Examples
     /// ```
-    /// let creds = Creds::new("user", "pass", "www.example.com")
-    /// let creds = Creds::new("user", "pass", "https://www.example.com")
+    /// let creds = Credentials::new("user", "pass", "www.example.com")
+    /// let creds = Credentials::new("user", "pass", "https://www.example.com")
     /// ```
     fn from<S: AsRef<str>>(
         username: S,
