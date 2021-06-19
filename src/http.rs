@@ -196,31 +196,37 @@ mod tests {
     #[test]
     #[ignore]
     fn get_user_valid() {
-        let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let http =
-            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
-                .into_http();
+        let http = Credentials::parse(
+            "test",
+            "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
+            "https://cloud.ebudd.io",
+        )
+        .unwrap()
+        .into_http();
         http.get_user().expect("Args are valid should return a result");
     }
 
     #[test]
     fn get_user_invalid_url() {
-        let url = Url::parse("https://cloud.ebudd.i").unwrap();
-        let http =
-            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url)
-                .into_http();
+        let http = Credentials::parse(
+            "test",
+            "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
+            "https://cloud.ebudd.i",
+        )
+        .unwrap()
+        .into_http();
         http.get_user().expect_err("Url is invalid should fail");
     }
 
     #[test]
     #[ignore]
     fn get_user_invalid_creds() {
-        let url = Url::parse("https://cloud.ebudd.io").unwrap();
-        let http = Credentials::new(
+        let http = Credentials::parse(
             "test_wrong",
             "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
-            url,
+            "https://cloud.ebudd.io",
         )
+        .unwrap()
         .into_http();
         http.get_user().expect_err("Username is invalid should fail");
     }

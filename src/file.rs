@@ -10,13 +10,11 @@ use once_cell::unsync::Lazy;
 
 use super::Credentials;
 
-pub const HISTORY_PATH: Lazy<PathBuf> = Lazy::new(|| {
-    home_dir().unwrap().join(".cache/nxcloud_history.txt")
-});
+pub const HISTORY_PATH: Lazy<PathBuf> =
+    Lazy::new(|| home_dir().unwrap().join(".cache/nxcloud_history.txt"));
 
-const CREDENTIALS_PATH: Lazy<PathBuf> = Lazy::new(|| {
-    home_dir().unwrap().join(".cache/nxcloud_auth.txt")
-});
+const CREDENTIALS_PATH: Lazy<PathBuf> =
+    Lazy::new(|| home_dir().unwrap().join(".cache/nxcloud_auth.txt"));
 
 impl Credentials {
     pub fn file_read_default() -> Result<Self> {
@@ -33,7 +31,7 @@ impl Credentials {
             return Err(anyhow!("Unexpected format"));
         }
 
-        Ok(Self::from(v[0], v[1], v[2])?)
+        Ok(Self::parse(v[0], v[1], v[2])?)
     }
 
     pub fn file_write_default(&self) -> Result<()> {
@@ -43,7 +41,10 @@ impl Credentials {
     fn file_write(&self, path: &Path) -> Result<()> {
         file_delete(path)?;
 
-        let encoded = encode(self.display());
+        let encoded = encode(format!(
+            "{} {} {}",
+            self.username, self.password, self.server
+        ));
         let mut file = File::create(&path)?;
         file.write_all(encoded.as_bytes())?;
         Ok(())
@@ -77,6 +78,8 @@ pub fn read_file(path: &Path) -> Result<Bytes> {
 // TESTS
 #[cfg(test)]
 mod tests {
+    use crate::{Password, Server, Username};
+
     use super::*;
     use url::Url;
 
@@ -91,7 +94,7 @@ mod tests {
     fn write_user_no_file() {
         let path = Path::new("test_write_user_no_file.txt");
         let creds =
-            Credentials::from("user", "pass", "https://cloud.example.com")
+            Credentials::parse("user", "pass", "https://cloud.example.com")
                 .unwrap();
         creds.file_write(path).expect("File should be created");
         file_delete(path).unwrap();
@@ -101,20 +104,22 @@ mod tests {
     fn write_user_overwrite_file() {
         let path = Path::new("test_write_user_overwrite_file.txt");
         let creds =
-            Credentials::from("user", "pass", "https://cloud.example.com")
+            Credentials::parse("user", "pass", "https://cloud.example.com")
                 .unwrap();
         creds.file_write(path).expect("File should be created");
         let creds2 =
-            Credentials::from("user2", "pass2", "cloud.example2.com").unwrap();
+            Credentials::parse("user2", "pass2", "https://cloud.example2.com")
+                .unwrap();
 
         // https should be added dynamically
         creds2.file_write(path).expect("File should be created");
         let resp = Credentials::file_read(path).unwrap();
-        assert_eq!(resp.username, String::from("user2"));
-        assert_eq!(resp.password, String::from("pass2"));
+        assert_eq!(resp.username, Username::new("user2".to_string()));
+        assert_eq!(resp.password, Password::new("pass2".to_string()));
         assert_eq!(
             resp.server,
-            Url::parse("https://cloud.example2.com").unwrap()
+            Server::new(Url::parse("https://cloud.example2.com").unwrap())
+                .unwrap()
         );
         file_delete(path).unwrap();
     }
@@ -123,22 +128,24 @@ mod tests {
     fn write_and_read() {
         let path = Path::new("test_read_and_write.txt");
         let creds =
-            Credentials::from("user", "pass", "https://cloud.example.com")
+            Credentials::parse("user", "pass", "https://cloud.example.com")
                 .unwrap();
         creds.file_write(path).expect("File should be created");
         let resp = Credentials::file_read(path).unwrap();
-        assert_eq!(resp.username, String::from("user"));
-        assert_eq!(resp.password, String::from("pass"));
+        assert_eq!(resp.username, Username::new("user".to_string()));
+        assert_eq!(resp.password, Password::new("pass".to_string()));
         assert_eq!(
             resp.server,
-            Url::parse("https://cloud.example.com").unwrap()
+            Server::new(Url::parse("https://cloud.example.com").unwrap())
+                .unwrap()
         );
 
-        assert_ne!(resp.username, String::from("user2"));
-        assert_ne!(resp.password, String::from("pass2"));
+        assert_ne!(resp.username, Username::new("user2".to_string()));
+        assert_ne!(resp.password, Password::new("pass2".to_string()));
         assert_ne!(
             resp.server,
-            Url::parse("https://cloud.example2.com").unwrap()
+            Server::new(Url::parse("https://cloud.example2.com").unwrap())
+                .unwrap()
         );
         file_delete(path).unwrap();
     }

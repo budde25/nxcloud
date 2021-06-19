@@ -175,6 +175,8 @@ pub fn join_dedot_path(
 
 #[cfg(test)]
 mod tests {
+    use crate::Credentials;
+
     use super::*;
 
     #[test]
@@ -449,5 +451,12 @@ mod tests {
             join_dedot_path(base, end).unwrap().to_str().unwrap(),
             "/foo/bar"
         );
+    }
+
+    #[test]
+    fn url_no_base() {
+        let creds =
+            Credentials::parse("username", "password", "www.example.com");
+        assert!(creds.is_ok());
     }
 }

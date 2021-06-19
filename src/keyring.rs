@@ -36,7 +36,7 @@ impl Credentials {
 
             let v: Vec<&str> = data.split(' ').collect();
 
-            Ok(Self::from(v[0], v[1], v[2])?)
+            Ok(Self::parse(v[0], v[1], v[2])?)
         } else {
             Credentials::file_read_default()
         }
@@ -69,32 +69,38 @@ impl Credentials {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::{Credentials, Password, Server, Username};
     use url::Url;
 
     #[test]
     #[ignore]
     fn store_creds() {
-        let url = Url::parse("https://cloud.example.com").unwrap();
-        let creds =
-            Credentials::new("test", "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS", url);
-        creds.write().expect("Write should be possible");
+        let creds = Credentials::parse(
+            "test",
+            "KXFJb-Pj8Ro-Rfkr4-q47CW-nwdWS",
+            "https://cloud.example.com",
+        );
+        assert!(creds.is_ok());
+        creds.unwrap().write().expect("Write should be possible");
         Credentials::delete().expect("Should remove creds");
     }
 
     #[test]
     #[ignore]
     fn set_and_read_creds() {
-        let url = Url::parse("https://cloud.example.com").unwrap();
-        let creds = Credentials::new("test", "pass", url);
+        let creds =
+            Credentials::parse("test", "pass", "https://cloud.example.com");
+        assert!(creds.is_ok());
+        let creds = creds.unwrap();
         creds.write().expect("Args are valid should return a result");
         let creds = Credentials::read().expect("Should be creds");
-        assert_eq!(creds.username, String::from("test"));
-        assert_eq!(creds.password, String::from("pass"));
+        assert_eq!(creds.username, Username::new("test".to_string()));
+        assert_eq!(creds.password, Password::new("pass".to_string()));
         assert_eq!(
             creds.server,
-            Url::parse("https://cloud.example.com").unwrap()
+            Server::new(Url::parse("https://cloud.example.com").unwrap())
+                .unwrap(),
         );
-        assert_ne!(creds.username, String::from("user2"));
+        assert_ne!(creds.username, Username::new("user2".to_string()));
     }
 }

@@ -1,10 +1,13 @@
 use anyhow::anyhow;
+use anyhow::bail;
 use bytes::Bytes;
 use clap::AppSettings;
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 use structopt::StructOpt;
 use url::{ParseError, Url};
 use xmltree::Element;
@@ -17,9 +20,102 @@ mod util;
 //// Structure for storing user credentials
 #[derive(Debug, Clone)]
 pub struct Credentials {
-    pub username: String,
-    pub password: String,
-    pub server: Url,
+    pub username: Username,
+    pub password: Password,
+    pub server: Server,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Username(String);
+
+#[derive(Clone, PartialEq)]
+pub struct Password(String);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Server(Url);
+
+impl Username {
+    pub fn new(s: String) -> Self {
+        Self(s)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl FromStr for Username {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
+    }
+}
+
+impl fmt::Display for Username {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Password {
+    pub fn new(s: String) -> Self {
+        Self(s)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Debug for Password {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Password").field(self).finish()
+    }
+}
+
+impl fmt::Display for Password {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for Password {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
+    }
+}
+
+impl Server {
+    pub fn new(u: Url) -> Result<Self, ParseError> {
+        let mut u = u;
+        if u.set_scheme("https").is_err() {
+            return Err(ParseError::RelativeUrlWithoutBase);
+        }
+        Ok(Self(u))
+    }
+}
+
+impl fmt::Display for Server {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for Server {
+    type Err = url::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let u = if s.starts_with("http://") || s.starts_with("https://") {
+            Url::parse(s)?
+        } else {
+            let fqdn = format!("{}{}", "https://", s);
+            Url::parse(&fqdn)?
+        };
+        Ok(Self::new(u)?)
+    }
 }
 
 impl Credentials {
@@ -32,43 +128,24 @@ impl Credentials {
     ///
     /// # Examples
     /// ```
-    /// let creds = Credentials::new("user", "pass", "www.example.com")
-    /// let creds = Credentials::new("user", "pass", "https://www.example.com")
+    /// let creds = Credentials::parse("user", "pass", "www.example.com")
+    /// let creds = Credentials::parse("user", "pass", "https://www.example.com")
     /// ```
-    fn from<S: AsRef<str>>(
-        username: S,
-        password: S,
-        server: S,
-    ) -> Result<Self, ParseError> {
-        let server = server.as_ref();
-        let fqdn: String =
-            if server.contains("https://") || server.contains("http://") {
-                String::from(server)
-            } else {
-                format!("https://{}", server.to_string())
-            };
-
-        let url: Url = Url::parse(&fqdn)?;
-        Ok(Self {
-            username: username.as_ref().to_string(),
-            password: password.as_ref().to_string(),
-            server: url,
-        })
+    fn parse(
+        username: &str,
+        password: &str,
+        server: &str,
+    ) -> anyhow::Result<Self> {
+        let username = Username::new(username.to_string());
+        let password = Password::new(password.to_string());
+        let server = Server::from_str(server)?;
+        Ok(Credentials::new(username, password, server))
     }
 
-    fn new<S: AsRef<str>>(username: S, password: S, server: Url) -> Self {
-        Self {
-            username: username.as_ref().to_string(),
-            password: password.as_ref().to_string(),
-            server,
-        }
-    }
-
-    fn display(&self) -> String {
-        format!("{} {} {}", self.username, self.password, self.server)
+    fn new(username: Username, password: Password, server: Server) -> Self {
+        Self { username, password, server }
     }
 }
-
 /// Cli Enum for command parsing
 #[derive(StructOpt)]
 #[structopt(
@@ -98,14 +175,14 @@ enum Command {
     /// Login to your NextCloud server, please provide a app password for security.
     Login {
         /// The server url, Ex: https://cloud.example.com.
-        #[structopt(parse(try_from_str = parse_url))]
-        server: Url,
+        #[structopt(parse(try_from_str))]
+        server: Server,
         /// Your NextCloud username.
         #[structopt()]
-        username: String,
+        username: Username,
         /// A NextCloud app password, do not use your account password.
         #[structopt()]
-        password: String,
+        password: Password,
     },
     /// Logout of your NextCloud server.
     Logout,
@@ -250,9 +327,9 @@ fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
 
 /// Login to the nextcloud server
 fn login(
-    server: Url,
-    username: String,
-    password: String,
+    server: Server,
+    username: Username,
+    password: Password,
 ) -> anyhow::Result<()> {
     let creds = Credentials::new(username, password, server);
 
@@ -278,8 +355,8 @@ fn logout() -> anyhow::Result<()> {
 fn status() {
     match Credentials::read() {
         Ok(creds) => {
-            let username: String = creds.username;
-            let server: Url = creds.server;
+            let username = creds.username;
+            let server = creds.server;
             println!(
                 "Logged in to Server: '{}' as User: '{}'",
                 server, username
@@ -428,12 +505,4 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
     }
     rl.save_history(&history_path).unwrap();
     Ok(())
-}
-
-fn parse_url(src: &str) -> Result<Url, ParseError> {
-    if src.contains("http") {
-        Url::parse(src)
-    } else {
-        Url::parse(&("https://".to_owned() + src))
-    }
 }
