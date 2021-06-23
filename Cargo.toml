@@ -24,7 +24,6 @@ url = "2.2"
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.1", features = ["full"] }
 xmltree = "0.10"
-bytes = "1.0"
 base64 = "0.13"
 keyring = { version = "0.10", optional = true }
 path-dedot = "3.0"

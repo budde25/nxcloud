@@ -4,7 +4,6 @@ use std::{fs, fs::File};
 
 use anyhow::{bail, Result};
 use base64::{decode, encode};
-use bytes::Bytes;
 use dirs_next::cache_dir;
 use once_cell::sync::Lazy;
 
@@ -62,7 +61,7 @@ pub fn file_delete(path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn create_file(path: &Path, data: &Bytes) -> Result<()> {
+pub fn create_file(path: &Path, data: &[u8]) -> Result<()> {
     if !path.exists() && !path.is_dir() {
         let mut file = File::create(&path)?;
         file.write_all(data)?;
@@ -70,15 +69,16 @@ pub fn create_file(path: &Path, data: &Bytes) -> Result<()> {
     Ok(())
 }
 
-pub fn read_file(path: &Path) -> Result<Bytes> {
-    let contents = fs::read_to_string(path)?;
-    Ok(Bytes::from(contents))
+/// Read a file
+pub fn read_file(path: &Path) -> Result<Vec<u8>> {
+    let contents = fs::read(path)?;
+    Ok(contents)
 }
 
 // TESTS
 #[cfg(test)]
 mod tests {
-    use crate::{Password, Server, Username};
+    use crate::types::credentials::{Password, Server, Username};
 
     use super::*;
     use url::Url;

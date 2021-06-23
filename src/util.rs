@@ -1,9 +1,9 @@
-use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
-
+use super::RemotePathBuf;
 use anyhow::anyhow;
 use path_dedot::ParseDot;
 use rustyline::{error::ReadlineError, Editor};
+use std::ffi::{OsStr, OsString};
+use std::path::{Path, PathBuf};
 
 /// Formats the source to be url safe for the pull
 pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {

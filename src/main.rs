@@ -1,150 +1,23 @@
-use anyhow::anyhow;
-use bytes::Bytes;
+#![forbid(unsafe_code)]
+
+use crate::types::credentials::{Credentials, Password, Server, Username};
+use crate::types::remote_path::RemotePathBuf;
+use anyhow::{bail, Result};
 use clap::AppSettings;
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use structopt::StructOpt;
-use url::{ParseError, Url};
 use xmltree::Element;
 
 mod file;
 mod http;
 mod keyring;
+mod types;
 mod util;
 
-//// Structure for storing user credentials
-#[derive(Debug, Clone)]
-pub struct Credentials {
-    pub username: Username,
-    pub password: Password,
-    pub server: Server,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Username(String);
-
-#[derive(Clone, PartialEq)]
-pub struct Password(String);
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Server(Url);
-
-impl Username {
-    pub fn new(s: String) -> Self {
-        Self(s)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl FromStr for Username {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
-    }
-}
-
-impl fmt::Display for Username {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Password {
-    pub fn new(s: String) -> Self {
-        Self(s)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Debug for Password {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Password").field(self).finish()
-    }
-}
-
-impl fmt::Display for Password {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl FromStr for Password {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
-    }
-}
-
-impl Server {
-    pub fn new(u: Url) -> Result<Self, ParseError> {
-        let mut u = u;
-        if u.set_scheme("https").is_err() {
-            return Err(ParseError::RelativeUrlWithoutBase);
-        }
-        Ok(Self(u))
-    }
-}
-
-impl fmt::Display for Server {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl FromStr for Server {
-    type Err = url::ParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let u = if s.starts_with("http://") || s.starts_with("https://") {
-            Url::parse(s)?
-        } else {
-            let fqdn = format!("{}{}", "https://", s);
-            Url::parse(&fqdn)?
-        };
-        Self::new(u)
-    }
-}
-
-impl Credentials {
-    /// Returns a Result with Credentials object or ParseError if an invalid url is supplied
-    ///
-    /// # Arguments
-    /// `username` - String slice that represent a NextCloud login username  
-    /// `password` - String slice that represents a NextCloud app password  
-    /// `server` - String slice that represents a NextCloud server url, http or https can be omitted, https is the default
-    ///
-    /// # Examples
-    /// ```
-    /// let creds = Credentials::parse("user", "pass", "www.example.com")
-    /// let creds = Credentials::parse("user", "pass", "https://www.example.com")
-    /// ```
-    fn parse(
-        username: &str,
-        password: &str,
-        server: &str,
-    ) -> anyhow::Result<Self> {
-        let username = Username::new(username.to_string());
-        let password = Password::new(password.to_string());
-        let server = Server::from_str(server)?;
-        Ok(Credentials::new(username, password, server))
-    }
-
-    fn new(username: Username, password: Password, server: Server) -> Self {
-        Self { username, password, server }
-    }
-}
 /// Cli Enum for command parsing
 #[derive(StructOpt)]
 #[structopt(
@@ -192,15 +65,15 @@ enum Command {
         #[structopt(parse(from_os_str))]
         source: PathBuf,
         /// Path to destination file.
-        #[structopt(parse(from_os_str))]
-        destination: PathBuf,
+        #[structopt(parse(try_from_str))]
+        destination: RemotePathBuf,
     },
     /// Pull a file from the server to your local machine.
     #[structopt(name = "pull")]
     Pull {
         /// Path to source file.
-        #[structopt(parse(from_os_str))]
-        source: PathBuf,
+        #[structopt(parse(try_from_str))]
+        source: RemotePathBuf,
         /// Path to destination file.
         #[structopt(parse(from_os_str))]
         destination: PathBuf,
@@ -210,8 +83,8 @@ enum Command {
     #[structopt(name = "ls")]
     Ls {
         /// Path to source file.
-        #[structopt(parse(from_os_str))]
-        path: Option<PathBuf>,
+        #[structopt(parse(try_from_str))]
+        path: Option<RemotePathBuf>,
 
         #[structopt(short, long)]
         list: bool,
@@ -224,16 +97,16 @@ enum Command {
     #[structopt(name = "mkdir")]
     Mkdir {
         /// Path to directory to create.
-        #[structopt(parse(from_os_str))]
-        path: PathBuf,
+        #[structopt(parse(try_from_str))]
+        path: RemotePathBuf,
     },
 
     /// Remove a file or directory, WARNING deletes files recursively.
     #[structopt(name = "rm")]
     Rm {
         /// Path to file or directory to remove.
-        #[structopt(parse(from_os_str))]
-        path: PathBuf,
+        #[structopt(parse(try_from_str))]
+        path: RemotePathBuf,
 
         // Force delete, will not show warning.
         #[structopt(short, long)]
@@ -248,15 +121,15 @@ enum Command {
     #[structopt(name = "cd")]
     Cd {
         /// directory to change to.
-        #[structopt(parse(from_os_str))]
-        path: PathBuf,
+        #[structopt(parse(try_from_str))]
+        path: RemotePathBuf,
     },
 }
 
 /// Entrypoint of the program, returns 0 on success
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<()> {
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
-    let current_dir = PathBuf::from("/");
+    let current_dir = RemotePathBuf::from_str("/").unwrap();
 
     let cli = Opt::from_args();
 
@@ -287,49 +160,42 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run(cli: Opt, mut current_dir: PathBuf) -> anyhow::Result<PathBuf> {
+fn run(cli: Opt, current_dir: RemotePathBuf) -> Result<RemotePathBuf> {
+    let mut cur = current_dir.clone();
     match cli.cmd {
         Command::Status {} => status(),
         Command::Login { server, username, password } => {
             login(server, username, password)?
         }
         Command::Logout {} => logout()?,
-        Command::Push { source, destination } => push(
-            source,
-            util::join_dedot_path(current_dir.clone(), destination)?,
-        )?,
-        Command::Pull { source, destination } => pull(
-            util::join_dedot_path(current_dir.clone(), source)?,
-            destination,
-        )?,
+        Command::Push { source, destination } => {
+            push(source, current_dir.join(destination.as_path())?)?
+        }
+        Command::Pull { source, destination } => {
+            pull(current_dir.join(source.as_path())?, destination)?
+        }
         Command::Ls { path, list, all } => {
-            let fp = if path.is_none() {
-                current_dir.clone()
+            let new_path = if let Some(remote_path) = path {
+                current_dir.join(remote_path.as_path())?
             } else {
-                util::join_dedot_path(current_dir.clone(), path.unwrap())?
+                current_dir
             };
-            ls(fp, list, all)?;
+            ls(new_path, list, all)?;
         }
-        Command::Mkdir { path } => {
-            mkdir(util::join_dedot_path(current_dir.clone(), path)?)?
-        }
+        Command::Mkdir { path } => mkdir(current_dir.join(path.as_path())?)?,
         Command::Rm { path, force } => {
-            rm(util::join_dedot_path(current_dir.clone(), path)?, force)?
+            rm(current_dir.join(path.as_path())?, force)?
         }
-        Command::Shell {} => shell(current_dir.clone())?,
+        Command::Shell {} => shell(current_dir)?,
         Command::Cd { path } => {
-            current_dir = util::join_dedot_path(current_dir.clone(), path)?
+            cur = current_dir.join(path.as_path())?;
         }
     };
-    Ok(current_dir)
+    Ok(cur)
 }
 
-/// Login to the nextcloud server
-fn login(
-    server: Server,
-    username: Username,
-    password: Password,
-) -> anyhow::Result<()> {
+/// Login to the NextCloud server
+fn login(server: Server, username: Username, password: Password) -> Result<()> {
     let creds = Credentials::new(username, password, server);
 
     let http = creds.clone().into_http();
@@ -340,11 +206,11 @@ fn login(
     Ok(())
 }
 
-/// Logout of the nextcloud server
-fn logout() -> anyhow::Result<()> {
+/// Logout of the NextCloud server
+fn logout() -> Result<()> {
     match Credentials::delete() {
         Ok(_) => println!("Logout Successful"),
-        Err(_) => return Err(anyhow!("Logout Failed")),
+        Err(_) => bail!("Logout Failed"),
     }
 
     Ok(())
@@ -354,11 +220,9 @@ fn logout() -> anyhow::Result<()> {
 fn status() {
     match Credentials::read() {
         Ok(creds) => {
-            let username = creds.username;
-            let server = creds.server;
             println!(
                 "Logged in to Server: '{}' as User: '{}'",
-                server, username
+                creds.server, creds.username
             );
         }
         Err(_) => println!("Not logged in"),
@@ -366,12 +230,12 @@ fn status() {
 }
 
 /// lists files
-fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
+fn ls(path: RemotePathBuf, list: bool, all: bool) -> Result<()> {
     // TODO fix this garbadge lol
 
     let creds = Credentials::read()?;
     let http = creds.into_http();
-    let data: String = http.get_list(&path)?;
+    let data: String = http.get_list(path.as_path())?;
     let xml = Element::parse(data.as_bytes()).unwrap();
     let items = xml.children;
     let mut files: Vec<String> = vec![];
@@ -401,22 +265,19 @@ fn ls(path: PathBuf, list: bool, all: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn mkdir(path: PathBuf) -> anyhow::Result<()> {
+fn mkdir(path: RemotePathBuf) -> Result<()> {
     let creds = Credentials::read()?;
-    creds.into_http().make_folder(&path)?;
+    creds.into_http().make_folder(&path.as_path())?;
     Ok(())
 }
 
-fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
-    if path.to_string_lossy() == "/" {
+fn rm(path: RemotePathBuf, force: bool) -> Result<()> {
+    if format!("{}", path) == "/" {
         error!("Deleting the root is not supported");
         return Ok(());
     }
 
-    let warning = format!(
-        "Are you sure you want to delete '{}', (y/n)",
-        path.to_string_lossy()
-    );
+    let warning = format!("Are you sure you want to delete '{}', (y/n)", path);
 
     if !force {
         warn!("DIRECTORIES DELETE ALL FILES AND DIRECTORIES RECURSIVELY");
@@ -428,47 +289,58 @@ fn rm(path: PathBuf, force: bool) -> anyhow::Result<()> {
     let creds = Credentials::read()?;
 
     let http = creds.into_http();
-    http.delete(&path)?;
+    http.delete(path.as_path())?;
     Ok(())
 }
 
 /// Pulls a file from the server to your computer
-fn pull(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
+fn pull(source: RemotePathBuf, destination: PathBuf) -> Result<()> {
     let creds = Credentials::read()?;
     let http = creds.into_http();
 
-    let new_dest = util::format_destination_pull(&source, &destination)?;
-    let new_src = util::format_source_pull(&source)?;
+    let new_dest =
+        util::format_destination_pull(source.as_path(), &destination)?;
+    //let new_src = util::format_source_pull(&source)?;
 
-    let data: Bytes = http.get_file(&new_src)?;
+    let data: Vec<u8> = http.get_file(source.as_path())?;
     file::create_file(&new_dest, &data)?;
 
-    println!("Pulled {:?}, {:?}", new_src, new_dest);
+    println!("Pulled {:?}, {:?}", source, new_dest);
     Ok(())
 }
 
 /// Pushes a file from your computer to the server
-fn push(source: PathBuf, destination: PathBuf) -> anyhow::Result<()> {
+fn push(source: PathBuf, destination: RemotePathBuf) -> Result<()> {
     let creds = Credentials::read()?;
     let http = creds.into_http();
 
-    let data: Bytes = file::read_file(&source)?;
-    let new_dest = util::format_destination_push(&source, &destination)?;
+    let data = if let Ok(bytes) = file::read_file(&source) {
+        bytes
+    } else {
+        println!("Must specify a file");
+        return Ok(());
+    };
 
-    http.send_file(&new_dest, data)?;
+    let mut destination = destination;
+    if !destination.is_file() {
+        // Ok since it needs to be a file to get the data from it
+        let source_file_name = source.file_name().unwrap();
+        destination.set_file_name(source_file_name);
+    }
 
-    println!("Push {:?}, {:?}", source, new_dest);
+    http.send_file(destination.as_path(), data)?;
+    println!("Push {:?}, {:?}", source, destination);
     Ok(())
 }
 
-fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
+fn shell(mut current_dir: RemotePathBuf) -> Result<()> {
     let mut rl = Editor::<()>::new();
     let history_path: PathBuf = file::HISTORY_PATH.to_path_buf();
     if rl.load_history(&history_path).is_ok() {
         info!("loaded prompt history");
     }
     loop {
-        let prompt = format!("[{}] >> ", current_dir.to_string_lossy());
+        let prompt = format!("[{}] >> ", current_dir);
         let readline = rl.readline(&prompt);
         match readline {
             Ok(line) => {
@@ -492,7 +364,7 @@ fn shell(mut current_dir: PathBuf) -> anyhow::Result<()> {
                         continue;
                     }
                 };
-                current_dir = run(cli, current_dir.to_path_buf())?;
+                current_dir = run(cli, current_dir)?;
             }
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,

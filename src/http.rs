@@ -2,7 +2,6 @@ use std::path::Path;
 use std::time::Duration;
 
 use anyhow::Result;
-use bytes::Bytes;
 use reqwest::{Client, ClientBuilder, Method};
 
 use super::Credentials;
@@ -54,7 +53,7 @@ impl Http {
     }
 
     #[tokio::main]
-    pub async fn get_file(&self, path: &Path) -> Result<Bytes> {
+    pub async fn get_file(&self, path: &Path) -> Result<Vec<u8>> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -74,11 +73,11 @@ impl Http {
             .await?
             .error_for_status();
 
-        Ok(response?.bytes().await?)
+        Ok(response?.bytes().await?.to_vec())
     }
 
     #[tokio::main]
-    pub async fn send_file(self, path: &Path, data: Bytes) -> Result<()> {
+    pub async fn send_file(self, path: &Path, data: Vec<u8>) -> Result<()> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
