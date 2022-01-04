@@ -3,13 +3,12 @@
 use crate::types::credentials::{Credentials, Password, Server, Username};
 use crate::types::remote_path::RemotePathBuf;
 use anyhow::{bail, Result};
-use clap::AppSettings;
+use clap::Parser;
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::path::PathBuf;
 use std::str::FromStr;
-use structopt::StructOpt;
 use xmltree::Element;
 
 mod file;
@@ -19,109 +18,108 @@ mod types;
 mod util;
 
 /// Cli Enum for command parsing
-#[derive(StructOpt)]
-#[structopt(
+#[derive(Parser, Debug)]
+#[clap(
     name = "NxCloud",
-    about = "A command line client for interacting with your NextCloud server.",
-    global_settings = &[AppSettings::ColoredHelp, AppSettings::InferSubcommands, AppSettings::VersionlessSubcommands, AppSettings::StrictUtf8]
+    about = "A command line client for interacting with your NextCloud server."
 )]
 struct Opt {
     /// Verbose mode (-v, -vv, -vvv)
-    #[structopt(short, long, parse(from_occurrences))]
+    #[clap(short, long, parse(from_occurrences))]
     verbose: u8,
 
-    #[structopt(subcommand)] // Note that we mark a field as a subcommand
+    #[clap(subcommand)] // Note that we mark a field as a subcommand
     cmd: Command,
 }
-/// Main Cli struct with StructOpt
-#[derive(Debug, StructOpt)]
-#[structopt(
+/// Main Cli struct with clap
+#[derive(Debug, Parser)]
+#[clap(
     name = "NxCloud",
     about = "A command line client for interacting with your NextCloud server."
 )]
 enum Command {
     /// Display's the account status.
-    #[structopt(name = "status")]
+    #[clap(name = "status")]
     Status {},
-    #[structopt(name = "login")]
+    #[clap(name = "login")]
     /// Login to your NextCloud server, please provide a app password for security.
     Login {
         /// The server url, Ex: https://cloud.example.com.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         server: Server,
         /// Your NextCloud username.
-        #[structopt()]
+        #[clap(parse(try_from_str))]
         username: Username,
         /// A NextCloud app password, do not use your account password.
-        #[structopt()]
+        #[clap(parse(try_from_str))]
         password: Password,
     },
     /// Logout of your NextCloud server.
     Logout,
     /// Push a file from your local machine to the server.
-    #[structopt(name = "push")]
+    #[clap(name = "push")]
     Push {
         /// Path to source file.
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         source: PathBuf,
         /// Path to destination file.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         destination: RemotePathBuf,
     },
     /// Pull a file from the server to your local machine.
-    #[structopt(name = "pull")]
+    #[clap(name = "pull")]
     Pull {
         /// Path to source file.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         source: RemotePathBuf,
         /// Path to destination file.
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         destination: PathBuf,
     },
 
     /// List files and directories.
-    #[structopt(name = "ls")]
+    #[clap(name = "ls")]
     Ls {
         /// Path to source file.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         path: Option<RemotePathBuf>,
 
-        #[structopt(short, long)]
+        #[clap(short, long)]
         list: bool,
 
-        #[structopt(short, long)]
+        #[clap(short, long)]
         all: bool,
     },
 
     /// Make a directory.
-    #[structopt(name = "mkdir")]
+    #[clap(name = "mkdir")]
     Mkdir {
         /// Path to directory to create.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         path: RemotePathBuf,
     },
 
     /// Remove a file or directory, WARNING deletes files recursively.
-    #[structopt(name = "rm")]
+    #[clap(name = "rm")]
     Rm {
         /// Path to file or directory to remove.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         path: RemotePathBuf,
 
         // Force delete, will not show warning.
-        #[structopt(short, long)]
+        #[clap(short, long)]
         force: bool,
     },
 
     /// Enter an interactive prompt.
-    #[structopt(name = "shell")]
+    #[clap(name = "shell")]
     Shell {},
 
     /// Change directory of remote - Shell Only.
-    #[structopt(name = "cd")]
+    #[clap(name = "cd")]
     Cd {
         /// directory to change to.
-        #[structopt(parse(try_from_str))]
+        #[clap(parse(try_from_str))]
         path: RemotePathBuf,
     },
 }
@@ -131,7 +129,7 @@ fn main() -> Result<()> {
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
     let current_dir = RemotePathBuf::from_str("/").unwrap();
 
-    let cli = Opt::from_args();
+    let cli = Opt::parse();
 
     // Sets the log level
     match cli.verbose {
@@ -357,7 +355,7 @@ fn shell(mut current_dir: RemotePathBuf) -> Result<()> {
                     };
                 let vec: Vec<&str> = line.split(' ').collect::<Vec<&str>>();
                 nxcloud.extend(vec);
-                let cli = match Opt::from_iter_safe(nxcloud) {
+                let cli = match Opt::try_parse_from(nxcloud) {
                     Ok(c) => c,
                     Err(e) => {
                         println!("{}", e);

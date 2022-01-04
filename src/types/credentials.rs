@@ -33,7 +33,7 @@ impl Username {
 }
 
 impl FromStr for Username {
-    type Err = Box<dyn std::error::Error>;
+    type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(s.to_string()))
@@ -69,7 +69,7 @@ impl fmt::Display for Password {
 }
 
 impl FromStr for Password {
-    type Err = Box<dyn std::error::Error>;
+    type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(s.to_string()))

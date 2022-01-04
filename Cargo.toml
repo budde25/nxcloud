@@ -19,20 +19,19 @@ default = ["secure-password"]
 secure-password = ["keyring"]
 
 [dependencies]
-structopt = "0.3"
 url = "2.2"
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.1", features = ["full"] }
 xmltree = "0.10"
 base64 = "0.13"
-keyring = { version = "0.10", optional = true }
+keyring = { version = "1.0", optional = true }
 path-dedot = "3.0"
 path-absolutize = "3.0"
 anyhow = "1.0"
-env_logger = "0.8"
-clap = "2.33"
+env_logger = "0.9"
+clap = { version = "3.0", features = ["derive"] }
 log = "0.4"
-rustyline = "8.0"
+rustyline = "9.1"
 dirs-next = "2.0"
 cfg-if = "1.0"
 once_cell = "1.7"

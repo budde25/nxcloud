@@ -4,7 +4,7 @@ use anyhow::Result;
 #[cfg(feature = "secure-password")]
 use base64::{decode, encode};
 #[cfg(feature = "secure-password")]
-use keyring::Keyring;
+use keyring::Entry;
 
 #[cfg(feature = "secure-password")]
 const SERVICE_NAME: &str = "nextcloud_client_cli";
@@ -12,7 +12,7 @@ const SERVICE_NAME: &str = "nextcloud_client_cli";
 impl Credentials {
     #[cfg(feature = "secure-password")]
     pub fn write(&self) -> Result<()> {
-        let keyring = Keyring::new(SERVICE_NAME, "username");
+        let keyring = Entry::new(SERVICE_NAME, "username");
         let credentials_string =
             format!("{} {} {}", self.username, self.password, self.server);
         let content = encode(credentials_string);
@@ -30,8 +30,8 @@ impl Credentials {
 
     #[cfg(feature = "secure-password")]
     pub fn read() -> Result<Self> {
-        let keyring = Keyring::new(SERVICE_NAME, "username");
-        if let Ok(content) = keyring.get_password() {
+        let entry = Entry::new(SERVICE_NAME, "username");
+        if let Ok(content) = entry.get_password() {
             let data = String::from_utf8_lossy(&decode(content)?).to_string();
 
             let v: Vec<&str> = data.split(' ').collect();
@@ -50,8 +50,8 @@ impl Credentials {
     #[cfg(feature = "secure-password")]
     pub fn delete() -> Result<()> {
         if cfg!(feature = "secure-password") {
-            let keyring = Keyring::new(SERVICE_NAME, "username");
-            if keyring.delete_password().is_err() {
+            let entry = Entry::new(SERVICE_NAME, "username");
+            if entry.delete_password().is_err() {
                 Credentials::file_delete_default()?;
             }
         } else {
