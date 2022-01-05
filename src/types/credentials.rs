@@ -12,15 +12,15 @@ pub struct Credentials {
 }
 
 /// NextCloud Username
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Username(String);
 
 /// NextCloud App Password
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Password(String);
 
 /// NextCloud Server
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Server(Url);
 
 impl Username {
@@ -59,13 +59,13 @@ impl Password {
 
 impl fmt::Debug for Password {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Password").field(self).finish()
+        f.debug_tuple("Password").field(&"<hidden>").finish()
     }
 }
 
 impl fmt::Display for Password {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "<hidden>")
     }
 }
 

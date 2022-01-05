@@ -127,6 +127,8 @@ enum Command {
 
 /// Entrypoint of the program, returns 0 on success
 fn main() -> Result<()> {
+    use tracing::Level;
+
     color_eyre::install()?;
 
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
@@ -134,24 +136,13 @@ fn main() -> Result<()> {
 
     let cli = Opt::parse();
 
+    let builder = tracing_subscriber::fmt();
     // Sets the log level
     match cli.verbose {
-        0 => env_logger::builder()
-            .filter_level(log::LevelFilter::Warn)
-            .format_timestamp(None)
-            .init(),
-        1 => env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .format_timestamp(None)
-            .init(),
-        2 => env_logger::builder()
-            .filter_level(log::LevelFilter::Debug)
-            .format_timestamp(None)
-            .init(),
-        _ => env_logger::builder()
-            .filter_level(log::LevelFilter::Trace)
-            .format_timestamp(None)
-            .init(),
+        0 => builder.with_max_level(Level::WARN).init(),
+        1 => builder.with_max_level(Level::INFO).init(),
+        2 => builder.with_max_level(Level::DEBUG).init(),
+        _ => builder.with_max_level(Level::TRACE).init(),
     };
 
     info!("Logger has been initialized");
