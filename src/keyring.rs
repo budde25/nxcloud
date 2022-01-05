@@ -1,5 +1,5 @@
 use super::Credentials;
-use anyhow::Result;
+use color_eyre::Result;
 
 #[cfg(feature = "secure-password")]
 use base64::{decode, encode};

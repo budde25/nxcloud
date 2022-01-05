@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::Result;
 use path_dedot::ParseDot;
 use std::{
     convert::TryFrom,
@@ -74,7 +74,7 @@ impl RemotePathBuf {
 }
 
 impl FromStr for RemotePathBuf {
-    type Err = anyhow::Error;
+    type Err = color_eyre::eyre::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let path_buf = PathBuf::try_from(s)?;
         let mut path = Self { path: path_buf, has_filename: true };
@@ -84,7 +84,7 @@ impl FromStr for RemotePathBuf {
 }
 
 impl TryFrom<PathBuf> for RemotePathBuf {
-    type Error = anyhow::Error;
+    type Error = color_eyre::eyre::Error;
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
         let mut path = Self { path: value, has_filename: true };
         path.clean()?;

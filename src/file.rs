@@ -2,8 +2,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{fs, fs::File};
 
-use anyhow::{bail, Result};
 use base64::{decode, encode};
+use color_eyre::eyre::bail;
+use color_eyre::Result;
 use dirs_next::cache_dir;
 use once_cell::sync::Lazy;
 

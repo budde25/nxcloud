@@ -1,3 +1,4 @@
+use color_eyre::Result;
 use core::fmt;
 use core::str::FromStr;
 use url::{ParseError, Url};
@@ -119,11 +120,7 @@ impl Credentials {
     /// let creds = Credentials::parse("user", "pass", "www.example.com")
     /// let creds = Credentials::parse("user", "pass", "https://www.example.com")
     /// ```
-    pub fn parse(
-        username: &str,
-        password: &str,
-        server: &str,
-    ) -> anyhow::Result<Self> {
+    pub fn parse(username: &str, password: &str, server: &str) -> Result<Self> {
         let username = Username::new(username.to_string());
         let password = Password::new(password.to_string());
         let server = Server::from_str(server)?;

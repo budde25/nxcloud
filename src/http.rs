@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use anyhow::Result;
+use color_eyre::Result;
 use reqwest::{Client, ClientBuilder, Method};
 
 use super::Credentials;

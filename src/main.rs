@@ -2,8 +2,9 @@
 
 use crate::types::credentials::{Credentials, Password, Server, Username};
 use crate::types::remote_path::RemotePathBuf;
-use anyhow::{bail, Result};
+//use anyhow::{bail, Result}
 use clap::Parser;
+use color_eyre::eyre::{bail, Result};
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -126,6 +127,8 @@ enum Command {
 
 /// Entrypoint of the program, returns 0 on success
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     //Command::clap().gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, "target");
     let current_dir = RemotePathBuf::from_str("/").unwrap();
 

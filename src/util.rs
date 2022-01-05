@@ -1,12 +1,13 @@
 use super::RemotePathBuf;
-use anyhow::anyhow;
+use color_eyre::eyre::bail;
+use color_eyre::Result;
 use path_dedot::ParseDot;
 use rustyline::{error::ReadlineError, Editor};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
 /// Formats the source to be url safe for the pull
-pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
+pub fn format_source_pull(source: &Path) -> Result<PathBuf> {
     // just to through error if its a directory
     get_source_file_name(source)?;
 
@@ -18,7 +19,7 @@ pub fn format_source_pull(source: &Path) -> anyhow::Result<PathBuf> {
 pub fn format_destination_pull(
     source: &Path,
     destination: &Path,
-) -> anyhow::Result<PathBuf> {
+) -> Result<PathBuf> {
     let source_file_name = get_source_file_name(source)?;
 
     let new_file_path = if path_is_file(destination) {
@@ -35,7 +36,7 @@ pub fn format_destination_pull(
 pub fn format_destination_push(
     source: &Path,
     destination: &Path,
-) -> anyhow::Result<PathBuf> {
+) -> Result<PathBuf> {
     let source_file_name = get_source_file_name(source)?;
 
     let new_file_path = if path_is_file(destination) {
@@ -49,15 +50,15 @@ pub fn format_destination_push(
 }
 
 /// Gets the file name from the source directory, returns Result of OsString or Error String
-fn get_source_file_name(source: &Path) -> anyhow::Result<OsString> {
+fn get_source_file_name(source: &Path) -> Result<OsString> {
     if !path_is_file(source) {
-        return Err(anyhow!("Source is a directory"));
+        bail!("Source is a directory");
     };
 
     if let Some(file_name) = source.file_name() {
         Ok(file_name.to_os_string())
     } else {
-        Err(anyhow!("Source has no file name"))
+        bail!("Source has no file name");
     }
 }
 
@@ -114,7 +115,7 @@ fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
     parent
 }
 
-pub fn get_confirmation(warning: &str) -> anyhow::Result<bool> {
+pub fn get_confirmation(warning: &str) -> Result<bool> {
     let mut rl = Editor::<()>::new();
     let prompt = format!("{}\n>> ", warning);
     let readline = rl.readline(&prompt);
@@ -139,10 +140,7 @@ pub fn get_confirmation(warning: &str) -> anyhow::Result<bool> {
     Ok(false)
 }
 
-pub fn join_dedot_path(
-    start: PathBuf,
-    end: PathBuf,
-) -> anyhow::Result<PathBuf> {
+pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> Result<PathBuf> {
     // Overide dot methods cause they tend to fail
     if end.to_str().is_some() && end.to_str().unwrap() == "." {
         return Ok(start);
