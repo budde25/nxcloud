@@ -2,7 +2,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use color_eyre::Result;
-use reqwest::{Client, ClientBuilder, Method};
+use reqwest::blocking::{Client, ClientBuilder};
+use reqwest::Method;
 
 use super::Credentials;
 
@@ -28,8 +29,7 @@ impl Http {
         }
     }
 
-    #[tokio::main]
-    pub async fn get_user(&self) -> Result<String> {
+    pub fn get_user(&self) -> Result<String> {
         let request: String = format!(
             "{url}{ext}{user}",
             url = self.credentials.server,
@@ -45,15 +45,13 @@ impl Http {
                 Some(&self.credentials.password),
             )
             .header("OCS-APIRequest", "true")
-            .send()
-            .await?
+            .send()?
             .error_for_status();
 
-        Ok(response?.text().await?)
+        Ok(response?.text()?)
     }
 
-    #[tokio::main]
-    pub async fn get_file(&self, path: &Path) -> Result<Vec<u8>> {
+    pub fn get_file(&self, path: &Path) -> Result<Vec<u8>> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -69,15 +67,13 @@ impl Http {
                 &self.credentials.username,
                 Some(&self.credentials.password),
             )
-            .send()
-            .await?
+            .send()?
             .error_for_status();
 
-        Ok(response?.bytes().await?.to_vec())
+        Ok(response?.bytes()?.to_vec())
     }
 
-    #[tokio::main]
-    pub async fn send_file(self, path: &Path, data: Vec<u8>) -> Result<()> {
+    pub fn send_file(self, path: &Path, data: Vec<u8>) -> Result<()> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -94,15 +90,13 @@ impl Http {
             )
             .header("OCS-APIRequest", "true")
             .body(data)
-            .send()
-            .await?
+            .send()?
             .error_for_status()?;
 
         Ok(())
     }
 
-    #[tokio::main]
-    pub async fn make_folder(self, path: &Path) -> Result<()> {
+    pub fn make_folder(self, path: &Path) -> Result<()> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -117,15 +111,13 @@ impl Http {
                 self.credentials.username,
                 Some(self.credentials.password),
             )
-            .send()
-            .await?
+            .send()?
             .error_for_status()?;
 
         Ok(())
     }
 
-    #[tokio::main]
-    pub async fn delete(self, path: &Path) -> Result<()> {
+    pub fn delete(self, path: &Path) -> Result<()> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -140,14 +132,13 @@ impl Http {
                 self.credentials.username,
                 Some(self.credentials.password),
             )
-            .send()
-            .await?
+            .send()?
             .error_for_status()?;
 
         Ok(())
     }
-    #[tokio::main]
-    pub async fn get_list(self, path: &Path) -> Result<String> {
+
+    pub fn get_list(self, path: &Path) -> Result<String> {
         let request: String = format!(
             "{url}{ext}{user}/{path}",
             url = self.credentials.server,
@@ -177,15 +168,13 @@ impl Http {
             )
             .header("depth", "1")
             .body(DATA)
-            .send()
-            .await?
+            .send()?
             .error_for_status();
 
-        Ok(response?.text().await?)
+        Ok(response?.text()?)
     }
 }
 
-// TESTS
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -259,7 +259,7 @@ fn ls(path: RemotePathBuf, list: bool, all: bool) -> Result<()> {
 
 fn mkdir(path: RemotePathBuf) -> Result<()> {
     let creds = Credentials::read()?;
-    creds.into_http().make_folder(&path.as_path())?;
+    creds.into_http().make_folder(path.as_path())?;
     Ok(())
 }
 

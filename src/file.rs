@@ -35,7 +35,7 @@ impl Credentials {
     }
 
     pub fn file_write_default(&self) -> Result<()> {
-        Self::file_write(&self, &CREDENTIALS_PATH)
+        Self::file_write(self, &CREDENTIALS_PATH)
     }
 
     fn file_write(&self, path: &Path) -> Result<()> {

@@ -56,7 +56,7 @@ impl RemotePathBuf {
     }
 
     pub fn as_path(&self) -> &Path {
-        &self.path.as_path()
+        self.path.as_path()
     }
 
     pub fn is_file(&self) -> bool {
