@@ -2,8 +2,6 @@ use super::Credentials;
 use color_eyre::Result;
 
 #[cfg(feature = "secure-password")]
-use base64::{decode, encode};
-#[cfg(feature = "secure-password")]
 use keyring::Entry;
 
 #[cfg(feature = "secure-password")]
@@ -13,10 +11,8 @@ impl Credentials {
     #[cfg(feature = "secure-password")]
     pub fn write(&self) -> Result<()> {
         let keyring = Entry::new(SERVICE_NAME, "username");
-        let credentials_string =
-            format!("{} {} {}", self.username, self.password, self.server);
-        let content = encode(credentials_string);
-        if keyring.set_password(&content).is_err() {
+        let encoded = self.encode();
+        if keyring.set_password(&encoded).is_err() {
             self.file_write_default()?;
         }
         Ok(())
@@ -32,13 +28,9 @@ impl Credentials {
     pub fn read() -> Result<Self> {
         let entry = Entry::new(SERVICE_NAME, "username");
         if let Ok(content) = entry.get_password() {
-            let data = String::from_utf8_lossy(&decode(content)?).to_string();
-
-            let v: Vec<&str> = data.split(' ').collect();
-
-            Ok(Self::parse(v[0], v[1], v[2])?)
+            Credentials::decode(&content)
         } else {
-            Credentials::file_read_default()
+            Credentials::read_default()
         }
     }
 

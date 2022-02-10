@@ -8,6 +8,7 @@ use color_eyre::eyre::{bail, Result};
 use log::{error, info, warn};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use xmltree::Element;
@@ -306,12 +307,7 @@ fn push(source: PathBuf, destination: RemotePathBuf) -> Result<()> {
     let creds = Credentials::read()?;
     let http = creds.into_http();
 
-    let data = if let Ok(bytes) = file::read_file(&source) {
-        bytes
-    } else {
-        println!("Must specify a file");
-        return Ok(());
-    };
+    let data = fs::read(&source)?;
 
     let mut destination = destination;
     if !destination.is_file() {

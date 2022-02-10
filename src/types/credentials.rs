@@ -1,10 +1,13 @@
 use color_eyre::Result;
 use core::fmt;
 use core::str::FromStr;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 use url::{ParseError, Url};
 
 /// Structure for storing user credentials
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Credentials {
     pub username: Username,
     pub password: Password,
@@ -12,24 +15,20 @@ pub struct Credentials {
 }
 
 /// NextCloud Username
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Username(String);
 
 /// NextCloud App Password
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Password(String);
 
 /// NextCloud Server
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Server(Url);
 
 impl Username {
     pub fn new(s: String) -> Self {
         Self(s)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
     }
 }
 
@@ -51,15 +50,12 @@ impl Password {
     pub fn new(s: String) -> Self {
         Self(s)
     }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
 }
 
 impl fmt::Debug for Password {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Password").field(&"<hidden>").finish()
+        //f.debug_tuple("Password").field(&"<hidden>").finish()
+        f.debug_tuple("Password").field(&self.0).finish()
     }
 }
 
@@ -127,7 +123,28 @@ impl Credentials {
         Ok(Credentials::new(username, password, server))
     }
 
+    /// Parse the credientials as space sepererated base64 encoded values
+    pub fn parse_file(path: &Path) -> Result<Self> {
+        let content = fs::read_to_string(path)?;
+        Self::decode(&content)
+    }
+
+    /// Create a new Credentials object
     pub fn new(username: Username, password: Password, server: Server) -> Self {
         Self { username, password, server }
+    }
+
+    /// Create an encoded string
+    pub fn encode(&self) -> String {
+        let serialized = serde_json::to_string(&self).unwrap();
+        base64::encode(serialized)
+    }
+
+    /// Decode a encoded string into a credentials object
+    pub fn decode(content: &str) -> Result<Self> {
+        let decode = base64::decode(content)?;
+        let decoded_str = String::from_utf8_lossy(&decode);
+        let deserialized: Self = serde_json::from_str(&decoded_str)?;
+        Ok(deserialized)
     }
 }
