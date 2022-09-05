@@ -155,12 +155,22 @@ fn main() -> Result<()> {
 
 fn run(cli: Opt, current_dir: RemotePathBuf) -> Result<RemotePathBuf> {
     let mut cur = current_dir.clone();
-    match cli.cmd {
+
+    // don't verify login any of these
+    match &cli.cmd {
         Command::Status {} => status(),
         Command::Login { server, username, password } => {
-            login(server, username, password)?
+            login(server.clone(), username.clone(), password.clone())?
         }
         Command::Logout {} => logout()?,
+        _ => {
+            if verify_login().is_none() {
+                return Ok(cur);
+            }
+        }
+    }
+
+    match cli.cmd {
         Command::Push { source, destination } => {
             push(source, current_dir.join(destination.as_path())?)?
         }
@@ -183,7 +193,10 @@ fn run(cli: Opt, current_dir: RemotePathBuf) -> Result<RemotePathBuf> {
         Command::Cd { path } => {
             cur = current_dir.join(path.as_path())?;
         }
-    };
+        Command::Status {} => (),
+        Command::Login { .. } => (),
+        Command::Logout { .. } => (),
+    }
     Ok(cur)
 }
 
@@ -211,14 +224,29 @@ fn logout() -> Result<()> {
 
 /// Prints the username and server of logged in user
 fn status() {
-    match Credentials::read() {
-        Ok(creds) => {
-            println!(
-                "Logged in to Server: '{}' as User: '{}'",
-                creds.server, creds.username
-            );
+    if let Some(creds) = verify_login() {
+        println!(
+            "Logged in to Server: '{}' as User: '{}'",
+            creds.server, creds.username
+        );
+    }
+}
+
+fn verify_login() -> Option<Credentials> {
+    match is_logged_in() {
+        Some(creds) => Some(creds),
+        None => {
+            println!("Not logged in");
+            None
         }
-        Err(_) => println!("Not logged in"),
+    }
+}
+
+/// Check if the user is currently logged in
+fn is_logged_in() -> Option<Credentials> {
+    match Credentials::read() {
+        Ok(creds) => Some(creds),
+        Err(_) => None,
     }
 }
 
@@ -322,7 +350,7 @@ fn push(source: PathBuf, destination: RemotePathBuf) -> Result<()> {
 }
 
 fn shell(mut current_dir: RemotePathBuf) -> Result<()> {
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<()>::new()?;
     let history_path: PathBuf = file::HISTORY_PATH.to_path_buf();
     if rl.load_history(&history_path).is_ok() {
         info!("loaded prompt history");

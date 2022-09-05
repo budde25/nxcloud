@@ -1,4 +1,5 @@
 use super::Credentials;
+use color_eyre::eyre::WrapErr;
 use color_eyre::Result;
 
 #[cfg(feature = "secure-password")]
@@ -12,9 +13,9 @@ impl Credentials {
     pub fn write(&self) -> Result<()> {
         let keyring = Entry::new(SERVICE_NAME, "username");
         let encoded = self.encode();
-        if keyring.set_password(&encoded).is_err() {
-            self.file_write_default()?;
-        }
+        keyring
+            .set_password(&encoded)
+            .wrap_err("Failed to insert credentials into keyring")?;
         Ok(())
     }
 
@@ -27,11 +28,10 @@ impl Credentials {
     #[cfg(feature = "secure-password")]
     pub fn read() -> Result<Self> {
         let entry = Entry::new(SERVICE_NAME, "username");
-        if let Ok(content) = entry.get_password() {
-            Credentials::decode(&content)
-        } else {
-            Credentials::read_default()
-        }
+        let content = entry
+            .get_password()
+            .wrap_err("Failed to remove credentials from keyring")?;
+        Credentials::decode(&content)
     }
 
     #[cfg(not(feature = "secure-password"))]

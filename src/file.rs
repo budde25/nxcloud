@@ -1,3 +1,4 @@
+use color_eyre::eyre::Context;
 use color_eyre::Result;
 use dirs_next::cache_dir;
 use once_cell::sync::Lazy;
@@ -37,14 +38,18 @@ impl Credentials {
 
 pub fn file_delete(path: &Path) -> Result<()> {
     if path.exists() && path.is_file() {
-        fs::remove_file(path)?;
+        fs::remove_file(path).wrap_err_with(|| {
+            format!("Failed to delete file from {}", path.display())
+        })?;
     }
     Ok(())
 }
 
 pub fn create_file(path: &Path, data: &[u8]) -> Result<()> {
     if !path.exists() && !path.is_dir() {
-        let mut file = File::create(&path)?;
+        let mut file = File::create(&path).wrap_err_with(|| {
+            format!("Failed to write file from {}", path.display())
+        })?;
         file.write_all(data)?;
     }
     Ok(())

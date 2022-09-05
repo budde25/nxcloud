@@ -116,7 +116,7 @@ fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
 }
 
 pub fn get_confirmation(warning: &str) -> Result<bool> {
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<()>::new()?;
     let prompt = format!("{}\n>> ", warning);
     let readline = rl.readline(&prompt);
 
