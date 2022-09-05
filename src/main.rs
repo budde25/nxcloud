@@ -5,9 +5,8 @@ use crate::types::remote_path::RemotePathBuf;
 //use anyhow::{bail, Result}
 use clap::Parser;
 use color_eyre::eyre::{bail, Result};
+use dialoguer::{Confirm, Input};
 use log::{error, info, warn};
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -298,11 +297,11 @@ fn rm(path: RemotePathBuf, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    let warning = format!("Are you sure you want to delete '{}', (y/n)", path);
+    let warning = format!("Are you sure you want to delete '{}'?", path);
 
     if !force {
         warn!("DIRECTORIES DELETE ALL FILES AND DIRECTORIES RECURSIVELY");
-        if !util::get_confirmation(&warning)? {
+        if !Confirm::new().with_prompt(warning).interact()? {
             return Ok(());
         }
     }
@@ -350,21 +349,29 @@ fn push(source: PathBuf, destination: RemotePathBuf) -> Result<()> {
 }
 
 fn shell(mut current_dir: RemotePathBuf) -> Result<()> {
-    let mut rl = Editor::<()>::new()?;
-    let history_path: PathBuf = file::HISTORY_PATH.to_path_buf();
-    if rl.load_history(&history_path).is_ok() {
-        info!("loaded prompt history");
-    }
+    // let mut rl = Editor::<()>::new()?;
+    // let history_path: PathBuf = file::HISTORY_PATH.to_path_buf();
+    // if rl.load_history(&history_path).is_ok() {
+    //     info!("loaded prompt history");
+    // }
+
+    let mut input = Input::<String>::new();
+    // .with_prompt("Tea or coffee?")
+    // .with_initial_text("Yes")
+    // .default("No".into())
+    // .interact_text()?;
+
     loop {
         let prompt = format!("[{}] >> ", current_dir);
-        let readline = rl.readline(&prompt);
+        input.with_prompt(&prompt);
+        let readline = input.interact_text();
         match readline {
             Ok(line) => {
                 if line.as_str().to_lowercase() == "exit" {
                     break;
                 }
 
-                rl.add_history_entry(line.as_str());
+                //rl.add_history_entry(line.as_str());
                 let mut nxcloud: Vec<&str> =
                     if line.as_str().starts_with("nxcloud") {
                         vec![]
@@ -382,14 +389,9 @@ fn shell(mut current_dir: RemotePathBuf) -> Result<()> {
                 };
                 current_dir = run(cli, current_dir)?;
             }
-            Err(ReadlineError::Interrupted) => break,
-            Err(ReadlineError::Eof) => break,
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
-            }
+            Err(_) => break,
         }
     }
-    rl.save_history(&history_path).unwrap();
+    // rl.save_history(&history_path).unwrap();
     Ok(())
 }

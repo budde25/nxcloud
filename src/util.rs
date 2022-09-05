@@ -2,7 +2,6 @@ use super::RemotePathBuf;
 use color_eyre::eyre::bail;
 use color_eyre::Result;
 use path_dedot::ParseDot;
-use rustyline::{error::ReadlineError, Editor};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
@@ -113,31 +112,6 @@ fn path_with_file_name(path: &Path, file_name: &Path) -> PathBuf {
         file_name.to_path_buf()
     };
     parent
-}
-
-pub fn get_confirmation(warning: &str) -> Result<bool> {
-    let mut rl = Editor::<()>::new()?;
-    let prompt = format!("{}\n>> ", warning);
-    let readline = rl.readline(&prompt);
-
-    match readline {
-        Ok(line) => {
-            let clean_line = line.trim().to_lowercase();
-            if clean_line == "y" || clean_line == "yes" {
-                return Ok(true);
-            }
-        }
-        Err(ReadlineError::Interrupted) => {
-            println!("CTRL-C");
-        }
-        Err(ReadlineError::Eof) => {
-            println!("CTRL-D");
-        }
-        Err(err) => {
-            println!("Error: {:?}", err);
-        }
-    }
-    Ok(false)
 }
 
 pub fn join_dedot_path(start: PathBuf, end: PathBuf) -> Result<PathBuf> {

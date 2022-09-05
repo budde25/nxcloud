@@ -1,42 +1,42 @@
 [package]
 name = "nxcloud"
 version = "0.2.1"
-authors = ["Ethan Budd <budde25@protonmail.com>"]
+authors = [ "Ethan Budd <budde25@protonmail.com>" ]
 description = "A client for interacting with your NextCloud server"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 edition = "2018"
-keywords = ["NextCloud", "CLI", "utilities"]
-categories = ["command-line-utilities"]
+keywords = [ "NextCloud", "CLI", "utilities" ]
+categories = [ "command-line-utilities" ]
 homepage = "https://github.com/budde25/nextcloud-client-cli"
 repository = "https://github.com/budde25/nextcloud-client-cli"
 
 [features]
 
-default = ["secure-password"]
+default = [ "secure-password" ]
 
 # allows use of the keyring package to store passwords in the users keyring
-secure-password = ["keyring"]
+secure-password = [ "keyring" ]
 
 [dependencies]
-url = {version = "2.2", features = ["serde"] }
-reqwest = { version = "0.11", features = ["blocking"] }
+url = { version = "2.2", features = [ "serde" ] }
+reqwest = { version = "0.11", features = [ "blocking" ] }
 xmltree = "0.10"
 base64 = "0.13"
 keyring = { version = "1.0", optional = true }
 path-dedot = "3.0"
 path-absolutize = "3.0"
-clap = { version = "3.1", features = ["derive"] }
+clap = { version = "3.1", features = [ "derive" ] }
 log = "0.4"
-rustyline = "10.0"
 dirs-next = "2.0"
 cfg-if = "1.0"
 once_cell = "1.9"
 color-eyre = "0.6.0"
 tracing = "0.1.30"
 tracing-subscriber = "0.3.5"
-serde = { version = "1.0.136", features = ["derive"] }
+serde = { version = "1.0.136", features = [ "derive" ] }
 serde_json = "1.0.78"
+dialoguer = "0.10.2"
 
 [dev-dependencies]
 tempfile = "3.3.0"
